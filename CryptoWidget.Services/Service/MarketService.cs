@@ -26,6 +26,9 @@ public class MarketService : IMarketService, IDisposable
     /// <summary>OKX 要求 30s 内必须 ping，这里每 20s 发一次保活</summary>
     private static readonly TimeSpan PingInterval = TimeSpan.FromSeconds(20);
 
+    /// <summary>断线重连指数退避封顶：2s→4s→8s→16s→30s，机场短暂抖动快速恢复，持续故障不狂刷</summary>
+    private const int MaxReconnectDelaySeconds = 30;
+
     private readonly object _lock = new();
     private readonly System.Threading.Timer _pingTimer;
     private WebsocketClient? _client;
@@ -37,6 +40,12 @@ public class MarketService : IMarketService, IDisposable
     private string _proxy = "";
     /// <summary>收到的 ticker 数据条数（用于降频日志确认数据流）</summary>
     private int _tickerCount;
+    /// <summary>指数退避基数：1<<attempt 得 2/4/8/16/32，封顶 30s；连接成功后重置为 1</summary>
+    private int _reconnectAttempt = 1;
+    /// <summary>是否已有排队的重连任务（防止断线事件风暴重复调度）</summary>
+    private bool _reconnecting;
+    /// <summary>是否已主动停止（Stop/Dispose/退出），停止后不再自动重连</summary>
+    private bool _stopped;
 
     public event EventHandler<Ticker>? TickerUpdated;
     public event EventHandler<bool>? ConnectionChanged;
@@ -57,6 +66,9 @@ public class MarketService : IMarketService, IDisposable
             lock (_lock)
             {
                 _instIds = list;
+                _stopped = false;        // 恢复自动重连状态
+                _reconnectAttempt = 1;   // 重新订阅重置退避基数
+                _reconnecting = false;
                 StopClientLocked();
                 _urlIndex = 0; // 重新订阅回到主节点
                 ConnectCoreLocked();
@@ -78,19 +90,22 @@ public class MarketService : IMarketService, IDisposable
         _pingTimer.Change(Timeout.Infinite, Timeout.Infinite);
         lock (_lock)
         {
+            _stopped = true;
             StopClientLocked();
         }
     }
 
-    /// <summary>建立 WebSocket 连接（含代理配置），连接由库自动维护重连</summary>
+    /// <summary>建立 WebSocket 连接（含代理配置）；库的固定间隔重连关闭，断线重连由自控指数退避接管</summary>
     private void ConnectCoreLocked()
     {
         try
         {
             var client = new WebsocketClient(new Uri(WsUrls[_urlIndex]), CreateClientWebSocket)
             {
-                // 断线后重连间隔（库内部带指数退避，无需自行实现）
-                ReconnectTimeout = TimeSpan.FromSeconds(30),
+                // 库自动重连（固定间隔）关闭，改为自控指数退避：机场断一小会可快速重连，持续故障不会疯狂重试
+                ReconnectTimeout = null,
+                ErrorReconnectTimeout = null,
+                IsReconnectionEnabled = false,
             };
 
             _subMessage = client.MessageReceived.Subscribe(OnMessageReceived);
@@ -108,8 +123,9 @@ public class MarketService : IMarketService, IDisposable
         }
         catch (Exception ex)
         {
-            // 建连异常不抛给上层，等待定时重连
+            // 建连异常不抛给上层，按指数退避静默重试（机场代理暂时不可用场景）
             LoggerHelper.Error("OKX WS 启动连接失败，将在后台重试", ex);
+            ScheduleReconnect();
         }
     }
 
@@ -207,25 +223,71 @@ public class MarketService : IMarketService, IDisposable
         }
     }
 
-    /// <summary>连接建立/重连成功：恢复订阅并上报在线（幂等，重连后服务端订阅状态已重置）</summary>
+    /// <summary>连接建立/重连成功：重置退避、恢复订阅并上报在线（幂等，重连后服务端订阅状态已重置）</summary>
     private void OnReconnectionHappened(ReconnectionInfo info)
     {
+        lock (_lock)
+        {
+            _reconnectAttempt = 1;  // 连接成功，退避基数归零
+            _reconnecting = false;
+        }
         SendSubscribe();
         LoggerHelper.Info($"OKX WS 已连接（{info.Type}），订阅 {_instIds.Count} 个交易对");
         ConnectionChanged?.Invoke(this, true);
     }
 
-    /// <summary>断开：上报离线并切换到备用节点（下次重连使用）</summary>
+    /// <summary>断开：主动停止不重连；网络类断开切换备用节点并进入指数退避静默重连</summary>
     private void OnDisconnectionHappened(DisconnectionInfo info)
     {
+        if (info.Type == DisconnectionType.ByUser)
+        {
+            // 主动 Stop/Dispose/替换订阅时的断开：不自动重连，避免误重建
+            LoggerHelper.Info($"OKX WS 主动断开（{info.Type}），不自动重连");
+            return;
+        }
         lock (_lock)
         {
             _urlIndex = (_urlIndex + 1) % WsUrls.Length;
             if (_client != null)
                 _client.Url = new Uri(WsUrls[_urlIndex]);
+            ConnectionChanged?.Invoke(this, false);
+            ScheduleReconnect();
         }
-        LoggerHelper.Warn($"OKX WS 断开（{info.Type}），下次重连切换备用节点");
-        ConnectionChanged?.Invoke(this, false);
+        LoggerHelper.Warn($"OKX WS 断开（{info.Type}），将自动重连（切换备用节点）");
+    }
+
+    /// <summary>指数退避调度重连：2s→4s→8s→16s→30s 封顶，静默执行（仅日志），连接成功由 OnReconnectionHappened 重置</summary>
+    private void ScheduleReconnect()
+    {
+        lock (_lock)
+        {
+            if (_stopped || _reconnecting || _client is null) return;
+            _reconnecting = true;
+            var delaySec = Math.Min(MaxReconnectDelaySeconds, 1 << _reconnectAttempt);
+            LoggerHelper.Warn($"OKX WS 将在 {delaySec}s 后自动重连（指数退避，第 {_reconnectAttempt} 次）");
+            _reconnectAttempt++;
+            _ = Task.Delay(TimeSpan.FromSeconds(delaySec))
+                .ContinueWith(_ => TryReconnect(), TaskScheduler.Default);
+        }
+    }
+
+    /// <summary>执行重连：销毁旧客户端并重建连接（失败会再次进入退避循环）</summary>
+    private void TryReconnect()
+    {
+        lock (_lock)
+        {
+            _reconnecting = false;
+            if (_stopped || _client is null) return;
+            if (_client.IsRunning)
+            {
+                // 断线事件后连接意外已恢复（误报场景），重置退避即可
+                _reconnectAttempt = 1;
+                return;
+            }
+            try { _client.Dispose(); } catch { }
+            _client = null;
+            ConnectCoreLocked();
+        }
     }
 
    /// <summary>发送订阅消息（tickers 频道，一次订阅全部交易对）</summary>
