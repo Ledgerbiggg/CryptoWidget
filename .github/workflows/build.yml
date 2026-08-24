@@ -42,14 +42,7 @@ jobs:
         run: |
           # 用 Python 标准 json 读取：utf-8-sig 容忍 BOM，json 自动还原 \uXXXX 转义与 \n
           # 避免 sed 字节流提取造成中文/emoji 乱码（windows-latest 自带 Python）
-          python - <<'EOF'
-import json
-with open('version.json', encoding='utf-8-sig') as f:
-    notes = json.load(f)['notes']
-with open('release_notes.txt', 'w', encoding='utf-8') as f:
-    f.write(notes)
-print('Release notes -> release_notes.txt')
-EOF
+          python -c "import json; f=open('release_notes.txt','w',encoding='utf-8'); f.write(json.load(open('version.json',encoding='utf-8-sig'))['notes'])"
           echo "=== release_notes.txt ==="
           cat release_notes.txt
 
