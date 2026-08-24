@@ -161,13 +161,11 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>保存窗口位置（隐藏/退出时触发；SaveSettings 广播 SettingsSaved，币种无变化不会重连）</summary>
+    /// <summary>保存窗口位置（隐藏/退出时触发）；基于最新配置只改位置，避免旧快照覆盖币种/透明度等新改动</summary>
     private void SaveWindowState()
     {
         if (WindowState != WindowState.Normal) return;
-        _settings.WindowLeft = Left;
-        _settings.WindowTop = Top;
-        _config.SaveSettings(_settings);
+        _vm.SaveWindowPosition(Left, Top);
     }
 
     /// <summary>托盘 Quit：真正结束进程</summary>

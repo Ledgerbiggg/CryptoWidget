@@ -13,6 +13,8 @@ public partial class SettingsWindow : Window
 {
     public SettingsWindow(SettingsViewModel vm)
     {
+        // 先同步最新配置（单例 VM），再初始化界面绑定，确保显示的是当前文件里的值
+        vm.Reload();
         InitializeComponent();
         DataContext = vm;
 

@@ -13,7 +13,7 @@ public class SettingsViewModel : BindableBase
     private readonly ConfigService _config;
     private readonly AutoStartService _autoStart;
 
-    private AppSettings _settings;
+    private AppSettings _settings = null!; // 构造/Reload 时加载
     private bool _showIcon = true;
     private bool _showName = true;
     private bool _showPrice = true;
@@ -41,7 +41,15 @@ public class SettingsViewModel : BindableBase
         MoveDownCommand = new DelegateCommand<CoinEditItem>(MoveDown);
         SaveCommand = new DelegateCommand(SaveAll);
 
-        _settings = config.LoadSettings();
+        Reload(); // 首次加载配置（单例 VM，之后每次打开设置窗口由窗口调用 Reload 同步最新配置）
+    }
+
+    /// <summary>重新从文件加载配置并重建编辑状态：单例 VM 必须与最新文件同步，
+    /// 否则再次打开设置会显示旧值，保存时还会用旧快照覆盖主卡片/设置窗口刚保存的新改动</summary>
+    public void Reload()
+    {
+        _settings = _config.LoadSettings();
+        Coins.Clear();
         foreach (var c in _settings.Coins)
         {
             var item = new CoinEditItem(c.Symbol, c.InstId, c.DecimalPlaces);
@@ -50,7 +58,7 @@ public class SettingsViewModel : BindableBase
             item.LoadIconAsync();
         }
 
-        // 直接回填 backing field，避免构造函数里触发 Save
+        // 直接回填 backing field（不触发 Save），新窗口绑定会读取这些最新值
         _showIcon = _settings.ShowIcon;
         _showName = _settings.ShowName;
         _showPrice = _settings.ShowPrice;
@@ -64,6 +72,7 @@ public class SettingsViewModel : BindableBase
         _fontWeightName = _settings.FontWeight;
         _autoStartEnabled = _settings.AutoStart;
         _proxy = _settings.Proxy;
+        ErrorText = "";
     }
 
     /// <summary>编辑中的币种列表</summary>

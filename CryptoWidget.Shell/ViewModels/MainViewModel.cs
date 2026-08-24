@@ -202,6 +202,14 @@ public class MainViewModel : BindableBase
 
     public DelegateCommand CloseCommand { get; }
 
+    /// <summary>保存窗口位置：基于最新配置快照仅更新位置字段（避免用启动时的旧快照覆盖币种/透明度等新改动）</summary>
+    public void SaveWindowPosition(double left, double top)
+    {
+        _settings.WindowLeft = left;
+        _settings.WindowTop = top;
+        _config.SaveSettings(_settings);
+    }
+
     /// <summary>开关/钉住状态变化后同步到配置并保存（SaveSettings 广播 SettingsSaved 刷新界面）</summary>
     private void SaveSettings()
     {
@@ -245,22 +253,40 @@ public class MainViewModel : BindableBase
         ApplySettings();
     }
 
-    /// <summary>应用当前配置：显示开关、钉住、代理、币种列表与订阅</summary>
+    /// <summary>应用当前配置：显示开关、钉住、代理、币种列表与订阅。
+    /// 直接回填 backing field 并一次性通知绑定，**不用 setter 赋值**——setter 会触发 SaveSettings，
+    /// 而 SaveSettings 又会广播 SettingsSaved 重入本方法，用尚未赋值的初始值覆盖文件中的新改动</summary>
     private void ApplySettings()
     {
-        ShowIcon = _settings.ShowIcon;
-        ShowName = _settings.ShowName;
-        ShowPrice = _settings.ShowPrice;
-        ShowChange = _settings.ShowChange;
-        ShowConnectionStatus = _settings.ShowConnectionStatus;
-        IsVerticalLayout = _settings.IsVerticalLayout;
-        PriceColorByTick = _settings.PriceColorByTick;
-        IsPinned = _settings.IsPinned;
-        BackgroundOpacity = _settings.BackgroundOpacity;
+        _showIcon = _settings.ShowIcon;
+        _showName = _settings.ShowName;
+        _showPrice = _settings.ShowPrice;
+        _showChange = _settings.ShowChange;
+        _showConnectionStatus = _settings.ShowConnectionStatus;
+        _isVerticalLayout = _settings.IsVerticalLayout;
+        _priceColorByTick = _settings.PriceColorByTick;
+        _isPinned = _settings.IsPinned;
+        _backgroundOpacity = _settings.BackgroundOpacity;
+        _fontFamily = ParseFontFamily(_settings.FontFamily);
+        _fontSize = _settings.FontSize;
+        _fontWeight = ParseFontWeight(_settings.FontWeight);
+
+        // 一次性通知界面刷新（RaisePropertyChanged 不触发任何保存逻辑）
+        RaisePropertyChanged(nameof(ShowIcon));
+        RaisePropertyChanged(nameof(ShowName));
+        RaisePropertyChanged(nameof(ShowPrice));
+        RaisePropertyChanged(nameof(ShowChange));
+        RaisePropertyChanged(nameof(ShowConnectionStatus));
+        RaisePropertyChanged(nameof(IsVerticalLayout));
+        RaisePropertyChanged(nameof(PriceColorByTick));
+        RaisePropertyChanged(nameof(IsPinned));
+        RaisePropertyChanged(nameof(BackgroundOpacity));
+        RaisePropertyChanged(nameof(FontFamily));
+        RaisePropertyChanged(nameof(FontSize));
+        RaisePropertyChanged(nameof(FontWeight));
+        RaisePropertyChanged(nameof(IconSize));
         UpdateBackgroundBrush();
-        FontFamily = ParseFontFamily(_settings.FontFamily);
-        FontSize = _settings.FontSize;
-        FontWeight = ParseFontWeight(_settings.FontWeight);
+
         _market.SetProxy(_settings.Proxy);
         RebuildCoins();
     }
