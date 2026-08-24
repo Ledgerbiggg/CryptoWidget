@@ -37,7 +37,7 @@ public class TrayService : ITrayService, IDisposable
         _pinMenu.Click += (_, _) => PinRequested?.Invoke(this, EventArgs.Empty);
         var settings = new ToolStripMenuItem("设置");
         settings.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
-        var quit = new ToolStripMenuItem("Quit");
+        var quit = new ToolStripMenuItem("退出");
         quit.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
         menu.Items.Add(_pinMenu);
         menu.Items.Add(settings);
