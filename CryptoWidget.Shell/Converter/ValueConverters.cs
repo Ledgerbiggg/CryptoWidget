@@ -52,3 +52,16 @@ public class InverseBoolToVisibilityConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
+
+/// <summary>币种名固定宽度（竖向布局对齐用）：按字号估算 5 个半角字符宽，币种名最多 5 个字母</summary>
+public class SymbolWidthConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var fontSize = value is double f && f > 0 ? f : 12;
+        return fontSize * 3.8; // 5 个字母 ≈ 3.8 倍字号（字母平均宽约 0.65~0.75 字号，留少量余量）
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}

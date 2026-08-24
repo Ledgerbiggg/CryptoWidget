@@ -10,6 +10,7 @@
             <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisConverter" />
             <conv:ChangePercentToBrushConverter x:Key="ChangeToBrushConverter" />
             <conv:ConnectedToBrushConverter x:Key="ConnectedToBrushConverter" />
+            <conv:SymbolWidthConverter x:Key="SymbolWidthConverter" />
 
             <!-- 全局字体：统一中英文渲染 -->
             <Style TargetType="TextBlock">

@@ -90,14 +90,24 @@
                                        Visibility="{Binding IconLoaded, Converter={StaticResource BoolToVisConverter}}" />
                             </Grid>
 
-                            <!-- 名称 -->
+                            <!-- 名称：竖向布局时固定 5 字符宽（价格列对齐），横向保持自适应 -->
                             <TextBlock Text="{Binding Symbol}"
                                        Foreground="#E8ECF1"
                                        FontFamily="{Binding DataContext.FontFamily, RelativeSource={RelativeSource AncestorType=Window}}"
                                        FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                        FontWeight="{Binding DataContext.FontWeight, RelativeSource={RelativeSource AncestorType=Window}}"
                                        Margin="7,0,0,0" VerticalAlignment="Center"
-                                       Visibility="{Binding DataContext.ShowName, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisConverter}}" />
+                                       Visibility="{Binding DataContext.ShowName, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisConverter}}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DataContext.IsVerticalLayout, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                <Setter Property="Width" Value="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource SymbolWidthConverter}}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
 
                             <!-- 价格 + 涨跌幅：小数位按历史最大稳定，宽度自适应不抖动 -->
                             <StackPanel Orientation="Vertical" Margin="10,0,0,0" VerticalAlignment="Center">
