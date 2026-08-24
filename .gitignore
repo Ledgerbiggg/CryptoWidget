@@ -13,5 +13,9 @@ obj/
 *.dll
 __pycache__/
 
+## 发布/安装包
+_publish/
+package/
+
 ## 日志（用户 AppData 日志不入库）
 logs/
