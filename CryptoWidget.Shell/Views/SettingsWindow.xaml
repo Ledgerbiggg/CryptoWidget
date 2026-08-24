@@ -11,6 +11,7 @@
         FontSize="12">
     <Window.Resources>
         <!-- 深色背景下控件统一白字，避免默认黑字看不清 -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="#E8ECF1" />
             <Setter Property="Margin" Value="0,2" />
@@ -35,26 +36,45 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="600">
         <StackPanel Margin="18,14">
 
-            <!-- 币种管理：增删 + 每币种小数位 -->
+            <!-- 币种管理：增删 + 上下箭头排序 + 每币种小数位 -->
             <TextBlock Text="币种" Style="{StaticResource SettingsGroupTitleStyle}" />
-            <TextBlock Text="拖动排序 · 小数位留空 = 原样显示 OKX 价格" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
+            <TextBlock Text="上下箭头调整顺序 · 小数位留空 = 原样显示 OKX 价格" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
             <ListBox ItemsSource="{Binding Coins}"
                      BorderThickness="0"
                      Background="Transparent"
-                     PreviewMouseLeftButtonDown="CoinsList_PreviewMouseLeftButtonDown"
-                     PreviewMouseMove="CoinsList_PreviewMouseMove"
-                     DragOver="CoinsList_DragOver"
-                     Drop="CoinsList_Drop">
+                     Foreground="#E8ECF1">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                         <Setter Property="Padding" Value="0" />
                         <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Foreground" Value="#E8ECF1" />
                     </Style>
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel Margin="0,3">
+                            <!-- 上下箭头排序：首位/末位自动忽略，顺序即主卡片展示顺序 -->
+                            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Width="24" Padding="0" FontSize="12"
+                                        Content="↑" ToolTip="上移"
+                                        Command="{Binding DataContext.MoveUpCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}" />
+                                <Button Width="24" Padding="0" FontSize="12" Margin="2,0,0,0"
+                                        Content="↓" ToolTip="下移"
+                                        Command="{Binding DataContext.MoveDownCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}" />
+                            </StackPanel>
+
+                            <!-- 币种图标：CDN 加载成功显示图片，失败回退首字母色块 -->
+                            <Grid DockPanel.Dock="Left" Width="16" Height="16" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <Ellipse Fill="{Binding InitialBrush}" />
+                                <TextBlock Text="{Binding Initial}" Foreground="White" FontSize="9"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Image Source="{Binding Icon}" Width="16" Height="16"
+                                       Visibility="{Binding IconLoaded, Converter={StaticResource BoolToVisConverter}}" />
+                            </Grid>
+
                             <Button DockPanel.Dock="Right"
                                     Content="删除"
                                     Width="52"
@@ -67,7 +87,8 @@
                                      VerticalContentAlignment="Center"
                                      Text="{Binding DecimalPlacesText, UpdateSourceTrigger=LostFocus}"
                                      ToolTip="价格小数位（留空=原样显示）" />
-                            <TextBlock Text="{Binding Symbol}" Width="72" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Symbol}" Width="60" FontWeight="SemiBold"
+                                       Foreground="#E8ECF1" VerticalAlignment="Center" Margin="8,0,0,0" />
                             <TextBlock Text="{Binding InstId}" Foreground="#9AA4B2" VerticalAlignment="Center" Margin="6,0,0,0" />
                         </DockPanel>
                     </DataTemplate>
@@ -98,7 +119,8 @@
             <CheckBox Content="显示连接状态圆点" IsChecked="{Binding ShowConnectionStatus}" Margin="0,2" />
             <CheckBox Content="价格颜色（新价比上一笔高变绿、低变红）" IsChecked="{Binding PriceColorByTick}" Margin="0,2" />
             <TextBlock Text="币种布局" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
-            <ComboBox SelectedIndex="{Binding LayoutIndex}">
+            <ComboBox SelectedIndex="{Binding LayoutIndex}"
+                      PreviewMouseWheel="ComboBox_PreviewMouseWheel">
                 <ComboBoxItem Content="横向（默认）" />
                 <ComboBoxItem Content="竖向" />
             </ComboBox>
@@ -109,7 +131,8 @@
             <TextBlock Text="样式" Style="{StaticResource SettingsGroupTitleStyle}" />
             <TextBlock Text="字体" Foreground="#9AA4B2" FontSize="11" Margin="0,6,0,4" />
             <ComboBox ItemsSource="{Binding FontFamilyOptions}"
-                      SelectedItem="{Binding FontFamilyName}" />
+                      SelectedItem="{Binding FontFamilyName}"
+                      PreviewMouseWheel="ComboBox_PreviewMouseWheel" />
             <TextBlock Text="字号" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
             <DockPanel>
                 <TextBlock DockPanel.Dock="Right"
@@ -122,7 +145,8 @@
             </DockPanel>
             <TextBlock Text="粗细" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
             <ComboBox ItemsSource="{Binding FontWeightOptions}"
-                      SelectedItem="{Binding FontWeightName}" />
+                      SelectedItem="{Binding FontWeightName}"
+                      PreviewMouseWheel="ComboBox_PreviewMouseWheel" />
 
             <Separator Margin="0,12" />
 

@@ -37,13 +37,18 @@ public class SettingsViewModel : BindableBase
 
         AddCoinCommand = new DelegateCommand(AddCoin);
         RemoveCoinCommand = new DelegateCommand<CoinEditItem>(RemoveCoin);
+        MoveUpCommand = new DelegateCommand<CoinEditItem>(MoveUp);
+        MoveDownCommand = new DelegateCommand<CoinEditItem>(MoveDown);
         SaveCommand = new DelegateCommand(SaveAll);
 
         _settings = config.LoadSettings();
         foreach (var c in _settings.Coins)
-            Coins.Add(new CoinEditItem(c.Symbol, c.InstId, c.DecimalPlaces));
-        foreach (var item in Coins)
+        {
+            var item = new CoinEditItem(c.Symbol, c.InstId, c.DecimalPlaces);
             item.DecimalPlacesChanged += (_, _) => Save();
+            Coins.Add(item);
+            item.LoadIconAsync();
+        }
 
         // 直接回填 backing field，避免构造函数里触发 Save
         _showIcon = _settings.ShowIcon;
@@ -66,6 +71,10 @@ public class SettingsViewModel : BindableBase
 
     public DelegateCommand AddCoinCommand { get; }
     public DelegateCommand<CoinEditItem> RemoveCoinCommand { get; }
+
+    /// <summary>上下箭头调整币种顺序（首个不可上移、末个不可下移）</summary>
+    public DelegateCommand<CoinEditItem> MoveUpCommand { get; }
+    public DelegateCommand<CoinEditItem> MoveDownCommand { get; }
 
     /// <summary>保存按钮：显式落盘全部配置（含小数位/代理等失焦才提交的输入）</summary>
     public DelegateCommand SaveCommand { get; }
@@ -221,6 +230,7 @@ public class SettingsViewModel : BindableBase
         var item = new CoinEditItem(symbol, instId);
         item.DecimalPlacesChanged += (_, _) => Save();
         Coins.Add(item);
+        item.LoadIconAsync();
         NewSymbol = "";
         Save();
     }
@@ -238,18 +248,23 @@ public class SettingsViewModel : BindableBase
         Save();
     }
 
-    /// <summary>拖拽排序：把 item 移到 target 前/后并保存，顺序即主卡片展示顺序</summary>
-    public void MoveCoin(CoinEditItem item, CoinEditItem target, bool insertAfter)
+    /// <summary>上移一个位置（列表首位不再上移），顺序即主卡片展示顺序</summary>
+    private void MoveUp(CoinEditItem item)
     {
-        var oldIndex = Coins.IndexOf(item);
-        var targetIndex = Coins.IndexOf(target);
-        if (oldIndex < 0 || targetIndex < 0 || oldIndex == targetIndex) return;
+        if (item == null) return;
+        var i = Coins.IndexOf(item);
+        if (i <= 0) return;
+        Coins.Move(i, i - 1);
+        Save();
+    }
 
-        Coins.RemoveAt(oldIndex);
-        var newIndex = Coins.IndexOf(target); // 移除后 target 下标可能变化，重新定位
-        if (insertAfter) newIndex++;
-        if (newIndex > Coins.Count) newIndex = Coins.Count;
-        Coins.Insert(newIndex, item);
+    /// <summary>下移一个位置（列表末尾不再下移），顺序即主卡片展示顺序</summary>
+    private void MoveDown(CoinEditItem item)
+    {
+        if (item == null) return;
+        var i = Coins.IndexOf(item);
+        if (i < 0 || i >= Coins.Count - 1) return;
+        Coins.Move(i, i + 1);
         Save();
     }
 
