@@ -8,6 +8,7 @@ namespace CryptoWidget.Services.Service;
 public class TrayService : ITrayService, IDisposable
 {
     private NotifyIcon? _notify;
+    private ToolStripMenuItem? _pinMenu;
 
     public event EventHandler? OpenRequested;
     public event EventHandler? PinRequested;
@@ -32,17 +33,24 @@ public class TrayService : ITrayService, IDisposable
         };
 
         var menu = new ContextMenuStrip();
-        var pin = new ToolStripMenuItem("置顶");
-        pin.Click += (_, _) => PinRequested?.Invoke(this, EventArgs.Empty);
+        _pinMenu = new ToolStripMenuItem("置顶");
+        _pinMenu.Click += (_, _) => PinRequested?.Invoke(this, EventArgs.Empty);
         var settings = new ToolStripMenuItem("设置");
         settings.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
         var quit = new ToolStripMenuItem("Quit");
         quit.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
-        menu.Items.Add(pin);
+        menu.Items.Add(_pinMenu);
         menu.Items.Add(settings);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(quit);
         _notify.ContextMenuStrip = menu;
+    }
+
+    /// <summary>更新「置顶」菜单勾选状态：已置顶时打勾，直观反馈当前状态</summary>
+    public void SetPinChecked(bool pinned)
+    {
+        if (_pinMenu != null)
+            _pinMenu.Checked = pinned;
     }
 
     public void Hide()

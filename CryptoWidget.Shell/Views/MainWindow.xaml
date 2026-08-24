@@ -42,13 +42,36 @@
                          VerticalAlignment="Center" />
             </StackPanel>
 
-            <!-- 币种行：横向排列，宽度随币种数自动扩展 -->
+            <!-- 币种行：横向（默认）/竖向由配置切换，宽度随内容自适应 -->
             <ItemsControl ItemsSource="{Binding Coins}" Margin="8,8">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+                <ItemsControl.Style>
+                    <Style TargetType="ItemsControl">
+                        <Setter Property="ItemsPanel">
+                            <Setter.Value>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsVerticalLayout}" Value="True">
+                                <Setter Property="ItemsPanel">
+                                    <Setter.Value>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" />
+                                        </ItemsPanelTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ItemsControl.Style>
+                <ItemsControl.ItemContainerStyle>
+                    <!-- 竖排时币种单元间留 2px 纵向间距 -->
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Margin" Value="0,2" />
+                    </Style>
+                </ItemsControl.ItemContainerStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="8,0">

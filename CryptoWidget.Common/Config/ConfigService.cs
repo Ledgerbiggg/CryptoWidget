@@ -50,6 +50,7 @@ public class ConfigService
         ShowPrice = true,
         ShowChange = true,
         ShowConnectionStatus = true,
+        IsVerticalLayout = false,
         PriceColorByTick = true,
         AutoStart = false,
         IsPinned = false,

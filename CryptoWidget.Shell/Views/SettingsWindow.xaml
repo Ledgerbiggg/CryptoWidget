@@ -37,9 +37,22 @@
 
             <!-- 币种管理：增删 + 每币种小数位 -->
             <TextBlock Text="币种" Style="{StaticResource SettingsGroupTitleStyle}" />
-            <TextBlock Text="小数位留空 = 原样显示 OKX 价格" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
-            <ItemsControl ItemsSource="{Binding Coins}">
-                <ItemsControl.ItemTemplate>
+            <TextBlock Text="拖动排序 · 小数位留空 = 原样显示 OKX 价格" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
+            <ListBox ItemsSource="{Binding Coins}"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     PreviewMouseLeftButtonDown="CoinsList_PreviewMouseLeftButtonDown"
+                     PreviewMouseMove="CoinsList_PreviewMouseMove"
+                     DragOver="CoinsList_DragOver"
+                     Drop="CoinsList_Drop">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Background" Value="Transparent" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel Margin="0,3">
                             <Button DockPanel.Dock="Right"
@@ -58,8 +71,8 @@
                             <TextBlock Text="{Binding InstId}" Foreground="#9AA4B2" VerticalAlignment="Center" Margin="6,0,0,0" />
                         </DockPanel>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                </ListBox.ItemTemplate>
+            </ListBox>
 
             <!-- 新增币种 -->
             <DockPanel Margin="0,8,0,0">
@@ -84,6 +97,11 @@
             <CheckBox Content="显示涨跌幅" IsChecked="{Binding ShowChange}" Margin="0,2" />
             <CheckBox Content="显示连接状态圆点" IsChecked="{Binding ShowConnectionStatus}" Margin="0,2" />
             <CheckBox Content="价格颜色（新价比上一笔高变绿、低变红）" IsChecked="{Binding PriceColorByTick}" Margin="0,2" />
+            <TextBlock Text="币种布局" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
+            <ComboBox SelectedIndex="{Binding LayoutIndex}">
+                <ComboBoxItem Content="横向（默认）" />
+                <ComboBoxItem Content="竖向" />
+            </ComboBox>
 
             <Separator Margin="0,12" />
 

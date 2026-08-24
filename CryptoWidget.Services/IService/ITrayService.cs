@@ -17,4 +17,7 @@ public interface ITrayService
 
     void Show();
     void Hide();
+
+    /// <summary>同步右键菜单「置顶」项的勾选状态（置顶时打勾）</summary>
+    void SetPinChecked(bool pinned);
 }

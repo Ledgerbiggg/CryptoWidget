@@ -35,11 +35,14 @@ public partial class MainWindow : Window
         _settings = config.LoadSettings();
         DataContext = vm;
 
-        // 窗口图标（用户提供的比特币图标），失败不阻塞
+        // 窗口图标（用户提供的比特币图标）。注意 .ico 必须用 IconBitmapDecoder 解码，BitmapImage 不支持
         try
         {
-            Icon = new System.Windows.Media.Imaging.BitmapImage(
-                new Uri("pack://application:,,,/Assets/btc.ico", UriKind.Absolute));
+            var decoder = new System.Windows.Media.Imaging.IconBitmapDecoder(
+                new Uri("pack://application:,,,/Assets/btc.ico", UriKind.Absolute),
+                System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
+                System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+            Icon = decoder.Frames[0];
         }
         catch (Exception ex)
         {
@@ -51,6 +54,12 @@ public partial class MainWindow : Window
         _tray.PinRequested += (_, _) => _vm.IsPinned = !_vm.IsPinned;
         _tray.SettingsRequested += (_, _) => _vm.OpenSettingsCommand.Execute();
         _tray.ExitRequested += (_, _) => ExitApp();
+        // 置顶状态变化时同步托盘菜单勾选状态
+        _vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.IsPinned))
+                _tray.SetPinChecked(_vm.IsPinned);
+        };
 
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;

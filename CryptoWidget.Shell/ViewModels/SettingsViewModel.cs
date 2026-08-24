@@ -19,6 +19,7 @@ public class SettingsViewModel : BindableBase
     private bool _showPrice = true;
     private bool _showChange = true;
     private bool _showConnectionStatus = true;
+    private bool _isVerticalLayout;
     private bool _priceColorByTick = true;
     private double _backgroundOpacity = 0.12;
     private string _fontFamilyName = "Microsoft YaHei UI";
@@ -50,6 +51,7 @@ public class SettingsViewModel : BindableBase
         _showPrice = _settings.ShowPrice;
         _showChange = _settings.ShowChange;
         _showConnectionStatus = _settings.ShowConnectionStatus;
+        _isVerticalLayout = _settings.IsVerticalLayout;
         _priceColorByTick = _settings.PriceColorByTick;
         _backgroundOpacity = _settings.BackgroundOpacity;
         _fontFamilyName = _settings.FontFamily;
@@ -113,6 +115,18 @@ public class SettingsViewModel : BindableBase
     {
         get => _showConnectionStatus;
         set { if (SetProperty(ref _showConnectionStatus, value)) Save(); }
+    }
+
+    /// <summary>币种布局：false=横向，true=竖向（0=横向，1=竖向）</summary>
+    public int LayoutIndex
+    {
+        get => _isVerticalLayout ? 1 : 0;
+        set
+        {
+            var vertical = value == 1;
+            if (SetProperty(ref _isVerticalLayout, vertical))
+                Save();
+        }
     }
 
     /// <summary>价格颜色（大屏效果）：新价比上一笔高变绿、低变红</summary>
@@ -224,6 +238,21 @@ public class SettingsViewModel : BindableBase
         Save();
     }
 
+    /// <summary>拖拽排序：把 item 移到 target 前/后并保存，顺序即主卡片展示顺序</summary>
+    public void MoveCoin(CoinEditItem item, CoinEditItem target, bool insertAfter)
+    {
+        var oldIndex = Coins.IndexOf(item);
+        var targetIndex = Coins.IndexOf(target);
+        if (oldIndex < 0 || targetIndex < 0 || oldIndex == targetIndex) return;
+
+        Coins.RemoveAt(oldIndex);
+        var newIndex = Coins.IndexOf(target); // 移除后 target 下标可能变化，重新定位
+        if (insertAfter) newIndex++;
+        if (newIndex > Coins.Count) newIndex = Coins.Count;
+        Coins.Insert(newIndex, item);
+        Save();
+    }
+
     /// <summary>保存按钮入口：落盘并通知窗口弹提示/关闭</summary>
     public void SaveAll()
     {
@@ -241,6 +270,7 @@ public class SettingsViewModel : BindableBase
         _settings.ShowPrice = _showPrice;
         _settings.ShowChange = _showChange;
         _settings.ShowConnectionStatus = _showConnectionStatus;
+        _settings.IsVerticalLayout = _isVerticalLayout;
         _settings.PriceColorByTick = _priceColorByTick;
         _settings.BackgroundOpacity = _backgroundOpacity;
         _settings.FontFamily = _fontFamilyName;

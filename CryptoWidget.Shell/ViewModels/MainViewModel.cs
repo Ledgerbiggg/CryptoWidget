@@ -94,6 +94,14 @@ public class MainViewModel : BindableBase
         set => SetProperty(ref _isConnected, value);
     }
 
+    private bool _isVerticalLayout;
+    /// <summary>币种布局：false=横向，true=竖向</summary>
+    public bool IsVerticalLayout
+    {
+        get => _isVerticalLayout;
+        set { if (SetProperty(ref _isVerticalLayout, value)) SaveSettings(); }
+    }
+
     private bool _priceColorByTick = true;
     /// <summary>价格颜色（大屏效果）：新价比上一笔高变绿、低变红</summary>
     public bool PriceColorByTick
@@ -202,6 +210,7 @@ public class MainViewModel : BindableBase
         _settings.ShowPrice = ShowPrice;
         _settings.ShowChange = ShowChange;
         _settings.ShowConnectionStatus = ShowConnectionStatus;
+        _settings.IsVerticalLayout = IsVerticalLayout;
         _settings.PriceColorByTick = PriceColorByTick;
         _settings.IsPinned = IsPinned;
         _settings.BackgroundOpacity = BackgroundOpacity;
@@ -244,6 +253,7 @@ public class MainViewModel : BindableBase
         ShowPrice = _settings.ShowPrice;
         ShowChange = _settings.ShowChange;
         ShowConnectionStatus = _settings.ShowConnectionStatus;
+        IsVerticalLayout = _settings.IsVerticalLayout;
         PriceColorByTick = _settings.PriceColorByTick;
         IsPinned = _settings.IsPinned;
         BackgroundOpacity = _settings.BackgroundOpacity;
