@@ -1,0 +1,17 @@
+## .NET 构建产物
+bin/
+obj/
+*.user
+*.suo
+
+## IDE
+.vs/
+.idea/
+
+## 运行时产物
+*.exe
+*.dll
+__pycache__/
+
+## 日志（用户 AppData 日志不入库）
+logs/

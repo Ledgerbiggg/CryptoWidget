@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>CryptoWidget.Services</RootNamespace>
+    <AssemblyName>CryptoWidget.Services</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CryptoWidget.Common\CryptoWidget.Common.csproj" />
+    <ProjectReference Include="..\CryptoWidget.Models\CryptoWidget.Models.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WebSocket.Client" Version="5.1.2" />
+  </ItemGroup>
+
+</Project>

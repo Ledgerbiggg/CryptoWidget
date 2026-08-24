@@ -1,0 +1,109 @@
+<Window x:Class="CryptoWidget.Shell.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CryptoWidget 设置"
+        Width="440"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#FF16181D"
+        TextElement.Foreground="#E8ECF1"
+        FontSize="12">
+    <Window.Resources>
+        <!-- 深色背景下控件统一白字，避免默认黑字看不清 -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#E8ECF1" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="#E8ECF1" />
+            <Setter Property="Background" Value="#2A2F3A" />
+            <Setter Property="BorderBrush" Value="#3A4150" />
+            <Setter Property="CaretBrush" Value="#E8ECF1" />
+            <Setter Property="Padding" Value="4,3" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="#E8ECF1" />
+            <Setter Property="Background" Value="#2A2F3A" />
+            <Setter Property="BorderBrush" Value="#3A4150" />
+            <Setter Property="Padding" Value="10,4" />
+        </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Background" Value="#2A2F3A" />
+        </Style>
+    </Window.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="600">
+        <StackPanel Margin="18,14">
+
+            <!-- 币种管理：增删 + 每币种小数位 -->
+            <TextBlock Text="币种" Style="{StaticResource SettingsGroupTitleStyle}" />
+            <TextBlock Text="小数位留空 = 原样显示 OKX 价格" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
+            <ItemsControl ItemsSource="{Binding Coins}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel Margin="0,3">
+                            <Button DockPanel.Dock="Right"
+                                    Content="删除"
+                                    Width="52"
+                                    Command="{Binding DataContext.RemoveCoinCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Margin="6,0,0,0" />
+                            <TextBox DockPanel.Dock="Right"
+                                     Width="64"
+                                     Margin="0,0,6,0"
+                                     VerticalContentAlignment="Center"
+                                     Text="{Binding DecimalPlacesText, UpdateSourceTrigger=LostFocus}"
+                                     ToolTip="价格小数位（留空=原样显示）" />
+                            <TextBlock Text="{Binding Symbol}" Width="72" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding InstId}" Foreground="#9AA4B2" VerticalAlignment="Center" Margin="6,0,0,0" />
+                        </DockPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- 新增币种 -->
+            <DockPanel Margin="0,8,0,0">
+                <Button DockPanel.Dock="Right"
+                        Content="添加"
+                        Width="56"
+                        Command="{Binding AddCoinCommand}"
+                        Margin="6,0,0,0" />
+                <TextBox Text="{Binding NewSymbol, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalContentAlignment="Center"
+                         ToolTip="输入币种代码（如 ETH）自动拼 ETH-USDT，或直接输入完整交易对（如 PEPE-USDT）" />
+            </DockPanel>
+            <TextBlock Text="{Binding ErrorText}" Foreground="#EF5350" FontSize="11" Margin="0,4,0,0" />
+
+            <Separator Margin="0,12" />
+
+            <!-- 显示开关 -->
+            <TextBlock Text="显示" Style="{StaticResource SettingsGroupTitleStyle}" />
+            <CheckBox Content="显示币种图标" IsChecked="{Binding ShowIcon}" Margin="0,2" />
+            <CheckBox Content="显示币种名称" IsChecked="{Binding ShowName}" Margin="0,2" />
+            <CheckBox Content="显示价格" IsChecked="{Binding ShowPrice}" Margin="0,2" />
+            <CheckBox Content="显示涨跌幅" IsChecked="{Binding ShowChange}" Margin="0,2" />
+            <CheckBox Content="价格颜色（新价比上一笔高变绿、低变红）" IsChecked="{Binding PriceColorByTick}" Margin="0,2" />
+
+            <Separator Margin="0,12" />
+
+            <!-- 其他 -->
+            <TextBlock Text="其他" Style="{StaticResource SettingsGroupTitleStyle}" />
+            <CheckBox Content="开机自启" IsChecked="{Binding AutoStart}" Margin="0,2" />
+            <TextBlock Text="代理（可选，如 http://127.0.0.1:7890）" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
+            <TextBox Text="{Binding Proxy, UpdateSourceTrigger=LostFocus}"
+                     VerticalContentAlignment="Center"
+                     ToolTip="留空则走系统代理/环境变量" />
+
+            <!-- 显式保存：落盘全部配置（开关类改动已即时保存，此按钮兜底文本输入等） -->
+            <Button Content="保存设置"
+                    Command="{Binding SaveCommand}"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0"
+                    Padding="20,6"
+                    FontWeight="SemiBold"
+                    Background="#F7931A"
+                    Foreground="White"
+                    BorderThickness="0" />
+        </StackPanel>
+    </ScrollViewer>
+</Window>
