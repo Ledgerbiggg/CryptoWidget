@@ -156,6 +156,40 @@ public class MainViewModel : BindableBase
         BorderBrush = bd;
     }
 
+    private FontFamily _fontFamily = new("Microsoft YaHei UI");
+    /// <summary>卡片字体（主卡片文字统一使用）</summary>
+    public FontFamily FontFamily
+    {
+        get => _fontFamily;
+        set { if (SetProperty(ref _fontFamily, value)) SaveSettings(); }
+    }
+
+    private double _fontSize = 12;
+    /// <summary>主字号（价格/名称/涨跌幅）</summary>
+    public double FontSize
+    {
+        get => _fontSize;
+        set
+        {
+            if (SetProperty(ref _fontSize, value))
+            {
+                RaisePropertyChanged(nameof(IconSize));
+                SaveSettings();
+            }
+        }
+    }
+
+    private FontWeight _fontWeight = FontWeights.SemiBold;
+    /// <summary>字重（常规/半粗/粗体）</summary>
+    public FontWeight FontWeight
+    {
+        get => _fontWeight;
+        set { if (SetProperty(ref _fontWeight, value)) SaveSettings(); }
+    }
+
+    /// <summary>币种图标尺寸：随字号等比缩放（约 1.5 倍字号，最小 14px）</summary>
+    public double IconSize => Math.Max(14, _fontSize * 1.5);
+
     public DelegateCommand OpenSettingsCommand { get; }
 
     public DelegateCommand CloseCommand { get; }
@@ -171,8 +205,29 @@ public class MainViewModel : BindableBase
         _settings.PriceColorByTick = PriceColorByTick;
         _settings.IsPinned = IsPinned;
         _settings.BackgroundOpacity = BackgroundOpacity;
+        _settings.FontFamily = FontFamily.Source;
+        _settings.FontSize = FontSize;
+        _settings.FontWeight = FontWeight.ToString();
         _config.SaveSettings(_settings);
     }
+
+    /// <summary>解析字体族，失败回退默认（避免配置了不存在的字体导致渲染异常）</summary>
+    private static FontFamily ParseFontFamily(string? name)
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            try { return new FontFamily(name); } catch { /* 回退默认 */ }
+        }
+        return new FontFamily("Microsoft YaHei UI");
+    }
+
+    /// <summary>解析字重字符串到 WPF FontWeight</summary>
+    private static FontWeight ParseFontWeight(string? name) => name switch
+    {
+        "Normal" => FontWeights.Normal,
+        "Bold" => FontWeights.Bold,
+        _ => FontWeights.SemiBold,
+    };
 
     /// <summary>主窗口 Loaded 后调用：应用配置并开始订阅行情</summary>
     public void Initialize()
@@ -193,6 +248,9 @@ public class MainViewModel : BindableBase
         IsPinned = _settings.IsPinned;
         BackgroundOpacity = _settings.BackgroundOpacity;
         UpdateBackgroundBrush();
+        FontFamily = ParseFontFamily(_settings.FontFamily);
+        FontSize = _settings.FontSize;
+        FontWeight = ParseFontWeight(_settings.FontWeight);
         _market.SetProxy(_settings.Proxy);
         RebuildCoins();
     }

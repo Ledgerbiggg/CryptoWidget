@@ -32,4 +32,13 @@ public class AppSettings
 
     /// <summary>卡片背景不透明度（0~1，越小越透明；默认接近全透明）</summary>
     public double BackgroundOpacity { get; set; } = 0.12;
+
+    /// <summary>字体族名（如 Microsoft YaHei UI）</summary>
+    public string FontFamily { get; set; } = "Microsoft YaHei UI";
+
+    /// <summary>主字号（价格/名称等）</summary>
+    public double FontSize { get; set; } = 12;
+
+    /// <summary>字重（Normal / SemiBold / Bold）</summary>
+    public string FontWeight { get; set; } = "SemiBold";
 }

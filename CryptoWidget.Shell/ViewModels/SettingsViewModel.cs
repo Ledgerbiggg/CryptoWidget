@@ -21,6 +21,9 @@ public class SettingsViewModel : BindableBase
     private bool _showConnectionStatus = true;
     private bool _priceColorByTick = true;
     private double _backgroundOpacity = 0.12;
+    private string _fontFamilyName = "Microsoft YaHei UI";
+    private double _fontSize = 12;
+    private string _fontWeightName = "SemiBold";
     private bool _autoStartEnabled;
     private string _proxy = "";
     private string _newSymbol = "";
@@ -49,6 +52,9 @@ public class SettingsViewModel : BindableBase
         _showConnectionStatus = _settings.ShowConnectionStatus;
         _priceColorByTick = _settings.PriceColorByTick;
         _backgroundOpacity = _settings.BackgroundOpacity;
+        _fontFamilyName = _settings.FontFamily;
+        _fontSize = _settings.FontSize;
+        _fontWeightName = _settings.FontWeight;
         _autoStartEnabled = _settings.AutoStart;
         _proxy = _settings.Proxy;
     }
@@ -121,6 +127,34 @@ public class SettingsViewModel : BindableBase
     {
         get => _backgroundOpacity;
         set { if (SetProperty(ref _backgroundOpacity, value)) Save(); }
+    }
+
+    /// <summary>可选字体列表</summary>
+    public string[] FontFamilyOptions { get; } =
+        ["Microsoft YaHei", "Microsoft YaHei UI", "SimSun", "DengXian", "Consolas", "Segoe UI", "Arial"];
+
+    /// <summary>可选字重列表</summary>
+    public string[] FontWeightOptions { get; } = ["Normal", "SemiBold", "Bold"];
+
+    /// <summary>当前字体（下拉框选择）</summary>
+    public string FontFamilyName
+    {
+        get => _fontFamilyName;
+        set { if (SetProperty(ref _fontFamilyName, value)) Save(); }
+    }
+
+    /// <summary>字号</summary>
+    public double FontSize
+    {
+        get => _fontSize;
+        set { if (SetProperty(ref _fontSize, value)) Save(); }
+    }
+
+    /// <summary>当前字重（下拉框选择）</summary>
+    public string FontWeightName
+    {
+        get => _fontWeightName;
+        set { if (SetProperty(ref _fontWeightName, value)) Save(); }
     }
 
     /// <summary>开机自启：写注册表并保存配置</summary>
@@ -209,6 +243,9 @@ public class SettingsViewModel : BindableBase
         _settings.ShowConnectionStatus = _showConnectionStatus;
         _settings.PriceColorByTick = _priceColorByTick;
         _settings.BackgroundOpacity = _backgroundOpacity;
+        _settings.FontFamily = _fontFamilyName;
+        _settings.FontSize = _fontSize;
+        _settings.FontWeight = _fontWeightName;
         _settings.AutoStart = _autoStartEnabled;
         _settings.Proxy = _proxy;
         _settings.Coins = Coins

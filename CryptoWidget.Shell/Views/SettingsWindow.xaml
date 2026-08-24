@@ -87,6 +87,27 @@
 
             <Separator Margin="0,12" />
 
+            <!-- 样式：字体 / 字号 / 粗细（字号变化会带动币种图标等比缩放） -->
+            <TextBlock Text="样式" Style="{StaticResource SettingsGroupTitleStyle}" />
+            <TextBlock Text="字体" Foreground="#9AA4B2" FontSize="11" Margin="0,6,0,4" />
+            <ComboBox ItemsSource="{Binding FontFamilyOptions}"
+                      SelectedItem="{Binding FontFamilyName}" />
+            <TextBlock Text="字号" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right"
+                           Text="{Binding FontSize, StringFormat={}{0:F0}px}"
+                           Width="44" TextAlignment="Right"
+                           Foreground="#9AA4B2" VerticalAlignment="Center" />
+                <Slider Minimum="10" Maximum="24"
+                        Value="{Binding FontSize}"
+                        VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Text="粗细" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
+            <ComboBox ItemsSource="{Binding FontWeightOptions}"
+                      SelectedItem="{Binding FontWeightName}" />
+
+            <Separator Margin="0,12" />
+
             <!-- 其他 -->
             <TextBlock Text="其他" Style="{StaticResource SettingsGroupTitleStyle}" />
             <CheckBox Content="开机自启" IsChecked="{Binding AutoStart}" Margin="0,2" />
