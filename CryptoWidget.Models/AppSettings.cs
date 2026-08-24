@@ -11,6 +11,9 @@ public class AppSettings
     public bool ShowPrice { get; set; } = true;
     public bool ShowChange { get; set; } = true;
 
+    /// <summary>是否显示全局连接状态圆点</summary>
+    public bool ShowConnectionStatus { get; set; } = true;
+
     /// <summary>价格颜色（大屏效果）：新价比上一笔高变绿、低变红；关闭则固定白色</summary>
     public bool PriceColorByTick { get; set; } = true;
 

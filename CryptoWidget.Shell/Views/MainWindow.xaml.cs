@@ -46,8 +46,10 @@ public partial class MainWindow : Window
             LoggerHelper.Error("设置窗口图标失败（已忽略）", ex);
         }
 
-        // 托盘：左键单击呼出卡片；右键 Quit 退出
+        // 托盘：左键单击呼出卡片；右键菜单 置顶/设置/Quit
         _tray.OpenRequested += (_, _) => ShowCard();
+        _tray.PinRequested += (_, _) => _vm.IsPinned = !_vm.IsPinned;
+        _tray.SettingsRequested += (_, _) => _vm.OpenSettingsCommand.Execute();
         _tray.ExitRequested += (_, _) => ExitApp();
 
         SourceInitialized += OnSourceInitialized;

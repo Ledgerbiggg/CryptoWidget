@@ -49,6 +49,7 @@ public class ConfigService
         ShowName = true,
         ShowPrice = true,
         ShowChange = true,
+        ShowConnectionStatus = true,
         PriceColorByTick = true,
         AutoStart = false,
         IsPinned = false,

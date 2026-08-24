@@ -82,6 +82,7 @@
             <CheckBox Content="显示币种名称" IsChecked="{Binding ShowName}" Margin="0,2" />
             <CheckBox Content="显示价格" IsChecked="{Binding ShowPrice}" Margin="0,2" />
             <CheckBox Content="显示涨跌幅" IsChecked="{Binding ShowChange}" Margin="0,2" />
+            <CheckBox Content="显示连接状态圆点" IsChecked="{Binding ShowConnectionStatus}" Margin="0,2" />
             <CheckBox Content="价格颜色（新价比上一笔高变绿、低变红）" IsChecked="{Binding PriceColorByTick}" Margin="0,2" />
 
             <Separator Margin="0,12" />
@@ -100,7 +101,7 @@
                            Text="{Binding BackgroundOpacity, StringFormat={}{0:P0}}"
                            Width="48" TextAlignment="Right"
                            Foreground="#9AA4B2" VerticalAlignment="Center" />
-                <Slider Minimum="0.05" Maximum="0.9"
+                <Slider Minimum="0" Maximum="0.9"
                         Value="{Binding BackgroundOpacity}"
                         VerticalAlignment="Center" />
             </DockPanel>

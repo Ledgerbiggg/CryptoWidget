@@ -48,9 +48,6 @@ public class CoinItem : INotifyPropertyChanged
 
     public SolidColorBrush InitialBrush { get; }
 
-    private bool _connected;
-    public bool Connected { get => _connected; set => Set(ref _connected, value); }
-
     private string _lastText = "--";
     public string LastText { get => _lastText; set => Set(ref _lastText, value); }
 

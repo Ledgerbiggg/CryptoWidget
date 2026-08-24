@@ -18,6 +18,7 @@ public class SettingsViewModel : BindableBase
     private bool _showName = true;
     private bool _showPrice = true;
     private bool _showChange = true;
+    private bool _showConnectionStatus = true;
     private bool _priceColorByTick = true;
     private double _backgroundOpacity = 0.12;
     private bool _autoStartEnabled;
@@ -45,6 +46,7 @@ public class SettingsViewModel : BindableBase
         _showName = _settings.ShowName;
         _showPrice = _settings.ShowPrice;
         _showChange = _settings.ShowChange;
+        _showConnectionStatus = _settings.ShowConnectionStatus;
         _priceColorByTick = _settings.PriceColorByTick;
         _backgroundOpacity = _settings.BackgroundOpacity;
         _autoStartEnabled = _settings.AutoStart;
@@ -98,6 +100,13 @@ public class SettingsViewModel : BindableBase
     {
         get => _showChange;
         set { if (SetProperty(ref _showChange, value)) Save(); }
+    }
+
+    /// <summary>是否显示全局连接状态圆点</summary>
+    public bool ShowConnectionStatus
+    {
+        get => _showConnectionStatus;
+        set { if (SetProperty(ref _showConnectionStatus, value)) Save(); }
     }
 
     /// <summary>价格颜色（大屏效果）：新价比上一笔高变绿、低变红</summary>
@@ -197,6 +206,7 @@ public class SettingsViewModel : BindableBase
         _settings.ShowName = _showName;
         _settings.ShowPrice = _showPrice;
         _settings.ShowChange = _showChange;
+        _settings.ShowConnectionStatus = _showConnectionStatus;
         _settings.PriceColorByTick = _priceColorByTick;
         _settings.BackgroundOpacity = _backgroundOpacity;
         _settings.AutoStart = _autoStartEnabled;

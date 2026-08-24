@@ -78,6 +78,22 @@ public class MainViewModel : BindableBase
         set { if (SetProperty(ref _showChange, value)) SaveSettings(); }
     }
 
+    private bool _showConnectionStatus = true;
+    /// <summary>是否显示全局连接状态圆点（绿=已连，红=断线）</summary>
+    public bool ShowConnectionStatus
+    {
+        get => _showConnectionStatus;
+        set { if (SetProperty(ref _showConnectionStatus, value)) SaveSettings(); }
+    }
+
+    private bool _isConnected;
+    /// <summary>OKX 连接状态（全局一个圆点）</summary>
+    public bool IsConnected
+    {
+        get => _isConnected;
+        set => SetProperty(ref _isConnected, value);
+    }
+
     private bool _priceColorByTick = true;
     /// <summary>价格颜色（大屏效果）：新价比上一笔高变绿、低变红</summary>
     public bool PriceColorByTick
@@ -151,6 +167,7 @@ public class MainViewModel : BindableBase
         _settings.ShowName = ShowName;
         _settings.ShowPrice = ShowPrice;
         _settings.ShowChange = ShowChange;
+        _settings.ShowConnectionStatus = ShowConnectionStatus;
         _settings.PriceColorByTick = PriceColorByTick;
         _settings.IsPinned = IsPinned;
         _settings.BackgroundOpacity = BackgroundOpacity;
@@ -171,6 +188,7 @@ public class MainViewModel : BindableBase
         ShowName = _settings.ShowName;
         ShowPrice = _settings.ShowPrice;
         ShowChange = _settings.ShowChange;
+        ShowConnectionStatus = _settings.ShowConnectionStatus;
         PriceColorByTick = _settings.PriceColorByTick;
         IsPinned = _settings.IsPinned;
         BackgroundOpacity = _settings.BackgroundOpacity;
@@ -230,14 +248,10 @@ public class MainViewModel : BindableBase
         });
     }
 
-    /// <summary>连接状态变化：同步所有币种的圆点（绿=已连，红=断线）</summary>
+    /// <summary>连接状态变化：更新全局圆点（绿=已连，红=断线）</summary>
     private void OnConnectionChanged(object? sender, bool connected)
     {
-        Application.Current.Dispatcher.BeginInvoke(() =>
-        {
-            foreach (var coin in Coins)
-                coin.Connected = connected;
-        });
+        Application.Current.Dispatcher.BeginInvoke(() => IsConnected = connected);
     }
 
     /// <summary>从 OKX 图标 CDN 异步加载币种图标，失败保持首字母色块（URL 用小写币种名拼接）</summary>

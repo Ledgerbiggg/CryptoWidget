@@ -10,6 +10,8 @@ public class TrayService : ITrayService, IDisposable
     private NotifyIcon? _notify;
 
     public event EventHandler? OpenRequested;
+    public event EventHandler? PinRequested;
+    public event EventHandler? SettingsRequested;
     public event EventHandler? ExitRequested;
 
     public void Show()
@@ -30,8 +32,15 @@ public class TrayService : ITrayService, IDisposable
         };
 
         var menu = new ContextMenuStrip();
+        var pin = new ToolStripMenuItem("置顶");
+        pin.Click += (_, _) => PinRequested?.Invoke(this, EventArgs.Empty);
+        var settings = new ToolStripMenuItem("设置");
+        settings.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
         var quit = new ToolStripMenuItem("Quit");
         quit.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
+        menu.Items.Add(pin);
+        menu.Items.Add(settings);
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(quit);
         _notify.ContextMenuStrip = menu;
     }
