@@ -104,7 +104,8 @@
                         Margin="6,0,0,0" />
                 <TextBox Text="{Binding NewSymbol, UpdateSourceTrigger=PropertyChanged}"
                          VerticalContentAlignment="Center"
-                         ToolTip="输入币种代码（如 ETH）自动拼 ETH-USDT，或直接输入完整交易对（如 PEPE-USDT）" />
+                         KeyDown="NewSymbolBox_KeyDown"
+                         ToolTip="输入币种代码（如 ETH）自动拼 ETH-USDT，或直接输入完整交易对（如 PEPE-USDT）；回车直接添加" />
             </DockPanel>
             <TextBlock Text="{Binding ErrorText}" Foreground="#EF5350" FontSize="11" Margin="0,4,0,0" />
 

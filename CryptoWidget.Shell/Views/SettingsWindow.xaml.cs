@@ -42,6 +42,15 @@ public partial class SettingsWindow : Window
         Close();
     }
 
+    /// <summary>新增币种输入框：按回车直接添加（等价点击「添加」按钮）</summary>
+    private void NewSymbolBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        if (DataContext is SettingsViewModel vm)
+            vm.AddCoinCommand.Execute();
+        e.Handled = true;
+    }
+
     /// <summary>ComboBox 悬停时滚轮不应改变选中项，而是滚动页面：拦截并把滚动量转交给外层 ScrollViewer</summary>
     private void ComboBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
