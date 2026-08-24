@@ -9,6 +9,9 @@ public interface ITrayService
     /// <summary>右键菜单：置顶切换</summary>
     event EventHandler? PinRequested;
 
+    /// <summary>右键菜单：显示/隐藏卡片切换（勾选=显示，取消=隐藏）</summary>
+    event EventHandler? ShowToggleRequested;
+
     /// <summary>右键菜单：打开设置</summary>
     event EventHandler? SettingsRequested;
 
@@ -20,4 +23,7 @@ public interface ITrayService
 
     /// <summary>同步右键菜单「置顶」项的勾选状态（置顶时打勾）</summary>
     void SetPinChecked(bool pinned);
+
+    /// <summary>同步右键菜单「显示卡片」项的勾选状态（卡片可见时打勾）</summary>
+    void SetShowChecked(bool visible);
 }

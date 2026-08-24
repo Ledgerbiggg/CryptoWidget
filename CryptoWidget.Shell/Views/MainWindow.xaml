@@ -18,6 +18,10 @@
             BorderThickness="1"
             MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">
         <DockPanel>
+            <!-- 命中刷（alpha=1 几乎不可见）：保证内容少/全透明时整卡仍可命中鼠标，拖动永远有效 -->
+            <DockPanel.Background>
+                <SolidColorBrush Color="#01FFFFFF" />
+            </DockPanel.Background>
             <!-- 右上角按钮行：仅保留关闭（隐藏到托盘）；置顶/设置已移到托盘右键菜单 -->
             <StackPanel DockPanel.Dock="Right"
                         Orientation="Horizontal"

@@ -49,8 +49,13 @@ public partial class MainWindow : Window
             LoggerHelper.Error("设置窗口图标失败（已忽略）", ex);
         }
 
-        // 托盘：左键单击呼出卡片；右键菜单 置顶/设置/Quit
-        _tray.OpenRequested += (_, _) => ShowCard();
+        // 托盘：左键单击呼出卡片；右键菜单 显示卡片/置顶/设置/Quit
+        _tray.OpenRequested += (_, _) =>
+        {
+            ShowCard();
+            _tray.SetShowChecked(true);
+        };
+        _tray.ShowToggleRequested += (_, _) => ToggleShowCard();
         _tray.PinRequested += (_, _) => _vm.IsPinned = !_vm.IsPinned;
         _tray.SettingsRequested += (_, _) => _vm.OpenSettingsCommand.Execute();
         _tray.ExitRequested += (_, _) => ExitApp();
@@ -108,6 +113,22 @@ public partial class MainWindow : Window
         Activate();
     }
 
+    /// <summary>托盘「显示卡片」开关：取消勾选=临时隐藏（不退出），再勾选=呼出；与 × 隐藏共用状态同步</summary>
+    private void ToggleShowCard()
+    {
+        if (IsVisible)
+        {
+            SaveWindowState();
+            Hide();
+            _tray.SetShowChecked(false);
+        }
+        else
+        {
+            ShowCard();
+            _tray.SetShowChecked(true);
+        }
+    }
+
     /// <summary>卡片空白处拖动窗口；按钮区域不触发（OriginalSource 属于按钮时跳过）</summary>
     private void CardBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -135,6 +156,7 @@ public partial class MainWindow : Window
             e.Cancel = true;
             SaveWindowState();
             Hide();
+            _tray.SetShowChecked(false); // 卡片隐藏，托盘「显示卡片」同步取消勾选
         }
     }
 
