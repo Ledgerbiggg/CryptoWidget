@@ -10,19 +10,20 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         Topmost="{Binding IsPinned}">
-    <!-- 悬浮卡片：半透明圆角（背景绑定配置透明度），空白处可拖动 -->
+    <!-- 悬浮卡片：背景/边框/按钮透明度随配置联动，空白处可拖动 -->
     <Border x:Name="CardBorder"
             CornerRadius="10"
             Background="{Binding BackgroundBrush}"
-            BorderBrush="#2AFFFFFF"
+            BorderBrush="{Binding BorderBrush}"
             BorderThickness="1"
             MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">
         <DockPanel>
-            <!-- 右上角按钮行：钉 / 设置 / 关闭（隐藏到托盘） -->
+            <!-- 右上角按钮行：钉 / 设置 / 关闭（隐藏到托盘）；透明度随背景淡出，点击功能保持 -->
             <StackPanel DockPanel.Dock="Right"
                         Orientation="Horizontal"
                         VerticalAlignment="Top"
-                        Margin="2,3,4,0">
+                        Margin="2,3,4,0"
+                        Opacity="{Binding BackgroundOpacity}">
                 <ToggleButton Style="{StaticResource PinToggleStyle}"
                               IsChecked="{Binding IsPinned}"
                               ToolTip="置顶 / 取消置顶">

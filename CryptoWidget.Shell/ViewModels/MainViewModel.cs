@@ -117,13 +117,27 @@ public class MainViewModel : BindableBase
         private set => SetProperty(ref _backgroundBrush, value);
     }
 
-    /// <summary>按当前不透明度重建背景画刷（冻结便于绑定）</summary>
+    private SolidColorBrush _borderBrush = new(Color.FromArgb(15, 255, 255, 255));
+    /// <summary>卡片边框画刷（白色，透明度随背景淡出）</summary>
+    public SolidColorBrush BorderBrush
+    {
+        get => _borderBrush;
+        private set => SetProperty(ref _borderBrush, value);
+    }
+
+    /// <summary>按当前不透明度重建背景/边框画刷（冻结便于绑定）；背景越透明，边框越淡直到消失</summary>
     private void UpdateBackgroundBrush()
     {
         var alpha = (byte)Math.Clamp((int)Math.Round(_backgroundOpacity * 255), 0, 255);
-        var brush = new SolidColorBrush(Color.FromArgb(alpha, 0x0F, 0x11, 0x15));
-        brush.Freeze();
-        BackgroundBrush = brush;
+        var bg = new SolidColorBrush(Color.FromArgb(alpha, 0x0F, 0x11, 0x15));
+        bg.Freeze();
+        BackgroundBrush = bg;
+
+        // 边框比背景更淡一层：全透明时边框也几乎不可见
+        var borderAlpha = (byte)Math.Clamp((int)Math.Round(_backgroundOpacity * 96), 0, 255);
+        var bd = new SolidColorBrush(Color.FromArgb(borderAlpha, 255, 255, 255));
+        bd.Freeze();
+        BorderBrush = bd;
     }
 
     public DelegateCommand OpenSettingsCommand { get; }
