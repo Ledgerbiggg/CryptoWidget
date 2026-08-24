@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Net.Http;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CryptoWidget.Common.Config;
 using CryptoWidget.Common.Logger;
@@ -93,6 +94,38 @@ public class MainViewModel : BindableBase
         set { if (SetProperty(ref _isPinned, value)) SaveSettings(); }
     }
 
+    private double _backgroundOpacity = 0.12;
+    /// <summary>卡片背景不透明度（越小越透明），主窗口背景绑定 BackgroundBrush</summary>
+    public double BackgroundOpacity
+    {
+        get => _backgroundOpacity;
+        set
+        {
+            if (SetProperty(ref _backgroundOpacity, value))
+            {
+                UpdateBackgroundBrush();
+                SaveSettings();
+            }
+        }
+    }
+
+    private SolidColorBrush _backgroundBrush = new(Color.FromArgb(31, 0x0F, 0x11, 0x15));
+    /// <summary>卡片背景画刷（深色 + 按配置透明度）</summary>
+    public SolidColorBrush BackgroundBrush
+    {
+        get => _backgroundBrush;
+        private set => SetProperty(ref _backgroundBrush, value);
+    }
+
+    /// <summary>按当前不透明度重建背景画刷（冻结便于绑定）</summary>
+    private void UpdateBackgroundBrush()
+    {
+        var alpha = (byte)Math.Clamp((int)Math.Round(_backgroundOpacity * 255), 0, 255);
+        var brush = new SolidColorBrush(Color.FromArgb(alpha, 0x0F, 0x11, 0x15));
+        brush.Freeze();
+        BackgroundBrush = brush;
+    }
+
     public DelegateCommand OpenSettingsCommand { get; }
 
     public DelegateCommand CloseCommand { get; }
@@ -106,6 +139,7 @@ public class MainViewModel : BindableBase
         _settings.ShowChange = ShowChange;
         _settings.PriceColorByTick = PriceColorByTick;
         _settings.IsPinned = IsPinned;
+        _settings.BackgroundOpacity = BackgroundOpacity;
         _config.SaveSettings(_settings);
     }
 
@@ -125,6 +159,8 @@ public class MainViewModel : BindableBase
         ShowChange = _settings.ShowChange;
         PriceColorByTick = _settings.PriceColorByTick;
         IsPinned = _settings.IsPinned;
+        BackgroundOpacity = _settings.BackgroundOpacity;
+        UpdateBackgroundBrush();
         _market.SetProxy(_settings.Proxy);
         RebuildCoins();
     }

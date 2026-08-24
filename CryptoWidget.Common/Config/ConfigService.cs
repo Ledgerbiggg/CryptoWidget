@@ -54,6 +54,7 @@ public class ConfigService
         IsPinned = false,
         // 默认走本地代理（用户环境），可在设置中修改或清空改回系统代理
         Proxy = "http://127.0.0.1:7890",
+        BackgroundOpacity = 0.12,
     };
 
     private static T Load<T>(string path, Func<T> fallback) where T : class

@@ -17,11 +17,11 @@ public partial class SettingsWindow : Window
         // 关闭前兜底保存：防止焦点转移未触发 LostFocus 导致小数位/代理改动丢失（静默，不弹提示）
         Closing += (_, _) => vm.SaveOnClose();
 
-        // 窗口图标与主卡片一致（比特币 ₿），失败不阻塞
+        // 窗口图标与主卡片一致（用户提供的比特币图标），失败不阻塞
         try
         {
             Icon = new System.Windows.Media.Imaging.BitmapImage(
-                new Uri("pack://application:,,,/Assets/app-icon.png", UriKind.Absolute));
+                new Uri("pack://application:,,,/Assets/btc.ico", UriKind.Absolute));
         }
         catch (Exception ex)
         {

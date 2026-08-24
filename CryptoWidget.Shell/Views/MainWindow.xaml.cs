@@ -35,11 +35,11 @@ public partial class MainWindow : Window
         _settings = config.LoadSettings();
         DataContext = vm;
 
-        // 窗口图标（比特币 ₿），失败不阻塞
+        // 窗口图标（用户提供的比特币图标），失败不阻塞
         try
         {
             Icon = new System.Windows.Media.Imaging.BitmapImage(
-                new Uri("pack://application:,,,/Assets/app-icon.png", UriKind.Absolute));
+                new Uri("pack://application:,,,/Assets/btc.ico", UriKind.Absolute));
         }
         catch (Exception ex)
         {

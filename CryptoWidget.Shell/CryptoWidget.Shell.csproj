@@ -22,9 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- tray.ico 供托盘 manifest 流读取；app-icon.png 供窗口图标 pack URI 读取 -->
+    <!-- btc.ico 供窗口图标 pack URI 读取；EmbeddedResource 供托盘 manifest 流读取 -->
     <EmbeddedResource Include="Assets\**\*" />
-    <Resource Include="Assets\app-icon.png" />
+    <Resource Include="Assets\btc.ico" />
   </ItemGroup>
 
 </Project>

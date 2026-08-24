@@ -19,6 +19,7 @@ public class SettingsViewModel : BindableBase
     private bool _showPrice = true;
     private bool _showChange = true;
     private bool _priceColorByTick = true;
+    private double _backgroundOpacity = 0.12;
     private bool _autoStartEnabled;
     private string _proxy = "";
     private string _newSymbol = "";
@@ -45,6 +46,7 @@ public class SettingsViewModel : BindableBase
         _showPrice = _settings.ShowPrice;
         _showChange = _settings.ShowChange;
         _priceColorByTick = _settings.PriceColorByTick;
+        _backgroundOpacity = _settings.BackgroundOpacity;
         _autoStartEnabled = _settings.AutoStart;
         _proxy = _settings.Proxy;
     }
@@ -103,6 +105,13 @@ public class SettingsViewModel : BindableBase
     {
         get => _priceColorByTick;
         set { if (SetProperty(ref _priceColorByTick, value)) Save(); }
+    }
+
+    /// <summary>卡片背景不透明度（越小越透明）</summary>
+    public double BackgroundOpacity
+    {
+        get => _backgroundOpacity;
+        set { if (SetProperty(ref _backgroundOpacity, value)) Save(); }
     }
 
     /// <summary>开机自启：写注册表并保存配置</summary>
@@ -189,6 +198,7 @@ public class SettingsViewModel : BindableBase
         _settings.ShowPrice = _showPrice;
         _settings.ShowChange = _showChange;
         _settings.PriceColorByTick = _priceColorByTick;
+        _settings.BackgroundOpacity = _backgroundOpacity;
         _settings.AutoStart = _autoStartEnabled;
         _settings.Proxy = _proxy;
         _settings.Coins = Coins

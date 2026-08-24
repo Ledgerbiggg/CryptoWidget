@@ -48,10 +48,11 @@ public class TrayService : ITrayService, IDisposable
     {
         try
         {
-            // 优先使用打包图标，失败回退到系统图标，避免安装后缺资源导致崩溃
+            // 优先使用用户提供的 btc.ico，回退打包图标/系统图标，避免缺资源崩溃
             var asm = typeof(TrayService).Assembly;
             var names = asm.GetManifestResourceNames();
-            var res = names.FirstOrDefault(n => n.EndsWith("tray.ico", StringComparison.OrdinalIgnoreCase));
+            var res = names.FirstOrDefault(n => n.EndsWith("btc.ico", StringComparison.OrdinalIgnoreCase))
+                   ?? names.FirstOrDefault(n => n.EndsWith("tray.ico", StringComparison.OrdinalIgnoreCase));
             if (res != null)
             {
                 using var stream = asm.GetManifestResourceStream(res)!;

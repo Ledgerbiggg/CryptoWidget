@@ -10,10 +10,10 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         Topmost="{Binding IsPinned}">
-    <!-- 悬浮卡片：半透明圆角，空白处可拖动 -->
+    <!-- 悬浮卡片：半透明圆角（背景绑定配置透明度），空白处可拖动 -->
     <Border x:Name="CardBorder"
             CornerRadius="10"
-            Background="#E60F1115"
+            Background="{Binding BackgroundBrush}"
             BorderBrush="#2AFFFFFF"
             BorderThickness="1"
             MouseLeftButtonDown="CardBorder_MouseLeftButtonDown">

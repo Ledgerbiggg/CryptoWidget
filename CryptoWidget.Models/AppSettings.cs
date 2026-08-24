@@ -26,4 +26,7 @@ public class AppSettings
 
     /// <summary>OKX WS 代理地址（可选，如 http://127.0.0.1:7890；空则走系统代理/环境变量）</summary>
     public string Proxy { get; set; } = "http://127.0.0.1:7890";
+
+    /// <summary>卡片背景不透明度（0~1，越小越透明；默认接近全透明）</summary>
+    public double BackgroundOpacity { get; set; } = 0.12;
 }
