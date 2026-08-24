@@ -74,14 +74,40 @@ public class CoinItem : INotifyPropertyChanged
     /// <summary>上一笔价格（用于跳动方向着色：新价高变绿、低变红）</summary>
     private decimal _lastPrice;
 
-    /// <summary>按配置格式化价格：配置了小数位则四舍五入到该位数，否则原样显示；并按跳动方向着色</summary>
+    /// <summary>最近价格小数位窗口：取最大值稳定显示，避免 OKX 偶发省略尾部零（79030 vs 79030.1）导致宽度抖动</summary>
+    private readonly Queue<int> _recentDecimals = new();
+    private const int RecentPriceCount = 5;
+    private int _displayDecimals = -1;
+
+    /// <summary>按配置格式化价格：配置了小数位则四舍五入到该位数；否则用最近 5 个价格的最大小数位补零显示；并按跳动方向着色</summary>
     public void ApplyPrice(string rawLast, decimal last, bool priceColorByTick)
     {
-        LastText = DecimalPlaces is int p
-            ? last.ToString("F" + p, CultureInfo.InvariantCulture)
-            : string.IsNullOrEmpty(rawLast) ? last.ToString(CultureInfo.InvariantCulture) : rawLast;
+        LastText = FormatPrice(rawLast, last);
         UpdateTickBrush(last, priceColorByTick);
         _lastPrice = last;
+    }
+
+    /// <summary>价格文本：配置小数位优先；否则按最近 5 个价格的最大小数位格式化（补零，宽度稳定）</summary>
+    private string FormatPrice(string rawLast, decimal last)
+    {
+        if (DecimalPlaces is int p)
+            return last.ToString("F" + p, CultureInfo.InvariantCulture);
+
+        _recentDecimals.Enqueue(CountDecimals(rawLast));
+        while (_recentDecimals.Count > RecentPriceCount)
+            _recentDecimals.Dequeue();
+        _displayDecimals = _recentDecimals.Max();
+
+        return _displayDecimals >= 0
+            ? last.ToString("F" + _displayDecimals, CultureInfo.InvariantCulture)
+            : string.IsNullOrEmpty(rawLast) ? last.ToString(CultureInfo.InvariantCulture) : rawLast;
+    }
+
+    /// <summary>统计原始价格字符串的小数位数（如 79030 → 0，79030.1 → 1）</summary>
+    private static int CountDecimals(string s)
+    {
+        var idx = s.IndexOf('.');
+        return idx < 0 ? 0 : s.Length - idx - 1;
     }
 
     /// <summary>应用涨跌幅文本（+1.23% / -0.45%），颜色固定绿涨红跌（由转换器处理）</summary>

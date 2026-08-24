@@ -72,10 +72,9 @@
                                        Margin="7,0,0,0" VerticalAlignment="Center"
                                        Visibility="{Binding DataContext.ShowName, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisConverter}}" />
 
-                            <!-- 价格 + 涨跌幅：价格固定最小宽度，避免 OKX 返回的小数位变化（79030 vs 79030.1）导致卡片宽度抖动 -->
+                            <!-- 价格 + 涨跌幅：小数位由 CoinItem 按最近 5 个价格稳定，宽度自适应不抖动 -->
                             <StackPanel Orientation="Vertical" Margin="10,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding LastText}"
-                                           MinWidth="100"
                                            Foreground="{Binding LastBrush}" FontSize="12" FontWeight="SemiBold"
                                            Visibility="{Binding DataContext.ShowPrice, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisConverter}}" />
                                 <TextBlock Text="{Binding ChangeText}"
