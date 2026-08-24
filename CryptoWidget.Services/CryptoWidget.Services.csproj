@@ -19,4 +19,9 @@
     <PackageReference Include="WebSocket.Client" Version="5.1.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 托盘图标：TrayService 从本程序集 manifest 流加载 -->
+    <EmbeddedResource Include="Assets\**\*" />
+  </ItemGroup>
+
 </Project>
