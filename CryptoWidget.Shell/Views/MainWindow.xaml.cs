@@ -80,6 +80,9 @@ public partial class MainWindow : Window
         {
             _tray.Show();
             _vm.Initialize();
+            // 隐藏启动参数 --open-settings：启动后自动打开设置窗口（截图/调试用）
+            if (Environment.GetCommandLineArgs().Contains("--open-settings"))
+                _vm.OpenSettingsCommand.Execute();
         }
         catch (Exception ex)
         {
