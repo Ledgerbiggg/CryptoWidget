@@ -1,18 +1,24 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Reflection;
+using System.Windows;
 using System.Windows.Input;
 using CryptoWidget.Common.AutoStart;
 using CryptoWidget.Common.Config;
+using CryptoWidget.Common.Logger;
 using CryptoWidget.Models;
+using CryptoWidget.Services.IService;
 using Prism.Commands;
 using Prism.Mvvm;
 
 namespace CryptoWidget.Shell.ViewModels;
 
-/// <summary>设置窗口 ViewModel：币种增删、显示开关、全局热键录制、开机自启、代理；改动即时保存并广播 SettingsSaved</summary>
+/// <summary>设置窗口 ViewModel：币种增删、显示开关、全局热键录制、开机自启、代理、版本更新检查；改动即时保存并广播 SettingsSaved</summary>
 public class SettingsViewModel : BindableBase
 {
     private readonly ConfigService _config;
     private readonly AutoStartService _autoStart;
+    private readonly IUpdateService _update;
 
     private AppSettings _settings = null!; // 构造/Reload 时加载
     private bool _showIcon = true;
@@ -39,11 +45,14 @@ public class SettingsViewModel : BindableBase
     private string _hotkeyModifier = "Alt";
     private string _hotkeyKey = "1";
     private bool _isRecording;
+    private bool _isChecking;
+    private string _updateStatus = "";
 
-    public SettingsViewModel(ConfigService config, AutoStartService autoStart)
+    public SettingsViewModel(ConfigService config, AutoStartService autoStart, IUpdateService update)
     {
         _config = config;
         _autoStart = autoStart;
+        _update = update;
 
         AddCoinCommand = new DelegateCommand(AddCoin);
         RemoveCoinCommand = new DelegateCommand<CoinEditItem>(RemoveCoin);
@@ -51,6 +60,8 @@ public class SettingsViewModel : BindableBase
         MoveDownCommand = new DelegateCommand<CoinEditItem>(MoveDown);
         SaveCommand = new DelegateCommand(SaveAll);
         RecordHotkeyCommand = new DelegateCommand(ToggleRecording);
+        CheckUpdateCommand = new DelegateCommand(async () => await CheckUpdateAsync());
+        Version = GetLocalVersion();
 
         Reload(); // 首次加载配置（单例 VM，之后每次打开设置窗口由窗口调用 Reload 同步最新配置）
     }
@@ -105,6 +116,26 @@ public class SettingsViewModel : BindableBase
 
     /// <summary>录制热键开关（点击「录制」后等待捕获组合键）</summary>
     public DelegateCommand RecordHotkeyCommand { get; }
+
+    /// <summary>检查更新命令（手动触发：检测 → 确认 → 下载 → 安装）</summary>
+    public DelegateCommand CheckUpdateCommand { get; }
+
+    /// <summary>本地程序版本号（三段，如 0.0.5）</summary>
+    public string Version { get; }
+
+    /// <summary>检查/下载状态文字（含下载百分比）</summary>
+    public string UpdateStatus
+    {
+        get => _updateStatus;
+        private set => SetProperty(ref _updateStatus, value);
+    }
+
+    /// <summary>正在检查或下载（按钮禁用/状态展示）</summary>
+    public bool IsChecking
+    {
+        get => _isChecking;
+        private set => SetProperty(ref _isChecking, value);
+    }
 
     /// <summary>保存成功后触发（窗口据此弹提示并自动关闭）</summary>
     public event EventHandler? Saved;
@@ -284,6 +315,61 @@ public class SettingsViewModel : BindableBase
     private void ToggleRecording()
     {
         IsRecording = !IsRecording;
+    }
+
+    /// <summary>手动检查更新：检测 GitHub 最新版 → 确认 → 下载（状态栏显示进度）→ 启动安装 → 结束进程完成升级</summary>
+    private async Task CheckUpdateAsync()
+    {
+        if (IsChecking) return;
+        IsChecking = true;
+        UpdateStatus = "正在检查更新…";
+        try
+        {
+            var info = await _update.CheckForUpdateAsync();
+            if (info == null)
+            {
+                UpdateStatus = "检查完成";
+                _ = MessageBox.Show($"当前已是最新版本（v{Version}）。\n\n若刚发布新版本请稍后再试，或检查网络/代理设置。",
+                    "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var msg = $"发现新版本 v{info.Version}（当前 v{Version}）\n\n{Truncate(info.Notes, 600)}\n\n是否立即下载并安装？";
+            if (MessageBox.Show(msg, "发现新版本", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            {
+                UpdateStatus = "已取消更新";
+                return;
+            }
+
+            UpdateStatus = "正在下载安装包… 0%";
+            var progress = new Progress<double>(p => UpdateStatus = $"正在下载安装包… {p * 100:F0}%");
+            var path = await _update.DownloadAsync(info, progress);
+            UpdateStatus = "下载完成，即将启动安装…";
+            _update.LaunchInstaller(path);
+            // 安装程序需覆盖正在运行的 exe：直接结束进程（托盘图标由系统回收），安装向导接管后续
+            Environment.Exit(0);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error("更新流程异常", ex);
+            UpdateStatus = "更新失败";
+            _ = MessageBox.Show($"下载更新失败：{ex.Message}", "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsChecking = false;
+        }
+    }
+
+    /// <summary>截断过长的更新说明，避免弹窗超长</summary>
+    private static string Truncate(string s, int max)
+        => string.IsNullOrEmpty(s) ? "" : (s.Length <= max ? s : s[..max] + "…");
+
+    /// <summary>本地版本取入口程序集（Shell）版本号，三段</summary>
+    private static string GetLocalVersion()
+    {
+        var v = Assembly.GetEntryAssembly()?.GetName().Version;
+        return v == null ? "0.0.0" : $"{v.Major}.{v.Minor}.{v.Build}";
     }
 
     /// <summary>由窗口 PreviewKeyDown 调用：捕获组合键（必须含修饰键，Esc 取消）</summary>

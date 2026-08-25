@@ -128,7 +128,8 @@ public class UpdateService : IUpdateService
             handler.Proxy = WebRequest.GetSystemWebProxy();
         }
 
-        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
+        // 下载安装包可达数十 MB，超时须放宽到 5 分钟（10 秒只够 API 检查，下载必超时）
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(5) };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("CryptoWidget-UpdateChecker");
         return client;
     }

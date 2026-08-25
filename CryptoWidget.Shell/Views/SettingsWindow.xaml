@@ -227,6 +227,32 @@
                         VerticalAlignment="Center" />
             </DockPanel>
 
+            <Separator Margin="0,12" />
+
+            <!-- 版本与更新：手动检查 GitHub 最新版，确认后下载（状态栏显示进度）并自动安装 -->
+            <TextBlock Text="版本" Style="{StaticResource SettingsGroupTitleStyle}" />
+            <DockPanel Margin="0,8,0,0">
+                <Button DockPanel.Dock="Right"
+                        Content="检查更新"
+                        Width="88"
+                        Command="{Binding CheckUpdateCommand}"
+                        Margin="8,0,0,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChecking}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <TextBlock Text="{Binding Version, StringFormat='v{0}'}" FontWeight="SemiBold"
+                           Foreground="#F7931A" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Text="{Binding UpdateStatus}" Foreground="#9AA4B2" FontSize="11" Margin="0,4,0,0"
+                       Visibility="{Binding IsChecking, Converter={StaticResource BoolToVisConverter}}" />
+
             <!-- 显式保存：落盘全部配置（开关类改动已即时保存，此按钮兜底文本输入等） -->
             <Button Content="保存设置"
                     Command="{Binding SaveCommand}"
