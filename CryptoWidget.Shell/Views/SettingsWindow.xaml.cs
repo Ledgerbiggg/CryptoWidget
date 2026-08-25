@@ -26,6 +26,9 @@ public partial class SettingsWindow : Window
         // 关闭前兜底保存：防止焦点转移未触发 LostFocus 导致小数位/代理改动丢失（静默，不弹提示）
         Closing += (_, _) => vm.SaveOnClose();
 
+        // 打开设置即自动检查版本：结果展示在状态栏，发现新版时按钮变为「立即更新」
+        _ = vm.AutoCheckAtOpenAsync();
+
         // 窗口图标与主卡片一致（用户提供的比特币图标）。注意 .ico 必须用 IconBitmapDecoder 解码，BitmapImage 不支持
         try
         {

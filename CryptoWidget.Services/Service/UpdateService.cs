@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
 using System.Text.Json;
 using CryptoWidget.Common.Config;
 using CryptoWidget.Common.Logger;
@@ -19,16 +18,14 @@ public class UpdateService : IUpdateService
 
     private readonly HttpClient _client;
     private readonly ConfigService _config;
-    private readonly string _localVersion;
 
     public UpdateService(ConfigService config)
     {
         _config = config;
-        _localVersion = GetLocalVersion();
         _client = CreateClient(config.LoadSettings().Proxy);
     }
 
-    /// <summary>检查 GitHub 最新 Release 是否比本地新；无更新/网络异常/无安装包返回 null</summary>
+    /// <summary>拉取 GitHub 最新 Release 信息（是否比本地新由调用方用 IsNewer 判断）；网络/解析失败返回 null</summary>
     public async Task<UpdateInfo?> CheckForUpdateAsync()
     {
         try
@@ -55,15 +52,14 @@ public class UpdateService : IUpdateService
                 }
             }
 
-            if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(downloadUrl) || string.IsNullOrEmpty(_localVersion))
+            if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(downloadUrl))
                 return null;
-            if (!IsNewer(version, _localVersion)) return null;
 
             return new UpdateInfo { Version = version, Notes = notes, DownloadUrl = downloadUrl };
         }
         catch (Exception ex)
         {
-            // 网络/解析失败静默：不打扰用户，下次启动再查
+            // 网络/解析失败静默：不打扰用户，调用方依据 null 展示「检查失败」状态
             LoggerHelper.Warn($"检查更新失败: {ex.Message}");
             return null;
         }
@@ -101,12 +97,6 @@ public class UpdateService : IUpdateService
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
     }
 
-    /// <summary>本地版本取入口程序集（Shell）版本号；取不到返回空（跳过更新检查）</summary>
-    private static string GetLocalVersion()
-    {
-        var v = Assembly.GetEntryAssembly()?.GetName().Version;
-        return v == null ? "" : $"{v.Major}.{v.Minor}.{v.Build}";
-    }
 
     /// <summary>构造 HttpClient：显式代理优先，否则系统代理；GitHub API 要求 User-Agent</summary>
     private static HttpClient CreateClient(string proxy)

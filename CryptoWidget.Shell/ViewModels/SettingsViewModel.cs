@@ -8,6 +8,7 @@ using CryptoWidget.Common.Config;
 using CryptoWidget.Common.Logger;
 using CryptoWidget.Models;
 using CryptoWidget.Services.IService;
+using CryptoWidget.Services.Service;
 using Prism.Commands;
 using Prism.Mvvm;
 
@@ -46,7 +47,10 @@ public class SettingsViewModel : BindableBase
     private string _hotkeyKey = "1";
     private bool _isRecording;
     private bool _isChecking;
+    private bool _isUpdating;
     private string _updateStatus = "";
+    private UpdateInfo? _latestInfo;
+    private bool _hasUpdate;
 
     public SettingsViewModel(ConfigService config, AutoStartService autoStart, IUpdateService update)
     {
@@ -117,11 +121,31 @@ public class SettingsViewModel : BindableBase
     /// <summary>录制热键开关（点击「录制」后等待捕获组合键）</summary>
     public DelegateCommand RecordHotkeyCommand { get; }
 
-    /// <summary>检查更新命令（手动触发：检测 → 确认 → 下载 → 安装）</summary>
+    /// <summary>检查更新 / 立即更新命令（自动检查发现新版后点击直接下载安装）</summary>
     public DelegateCommand CheckUpdateCommand { get; }
 
     /// <summary>本地程序版本号（三段，如 0.0.5）</summary>
     public string Version { get; }
+
+    /// <summary>是否有可更新版本（自动检查发现新版后置 true）</summary>
+    public bool HasUpdate
+    {
+        get => _hasUpdate;
+        private set
+        {
+            if (SetProperty(ref _hasUpdate, value)) RaisePropertyChanged(nameof(CheckButtonText));
+        }
+    }
+
+    /// <summary>按钮文字：有新版时「立即更新」，否则「检查更新」</summary>
+    public string CheckButtonText => _hasUpdate ? "立即更新" : "检查更新";
+
+    /// <summary>是否正在下载安装（更新中按钮禁用）</summary>
+    public bool IsUpdating
+    {
+        get => _isUpdating;
+        private set => SetProperty(ref _isUpdating, value);
+    }
 
     /// <summary>检查/下载状态文字（含下载百分比）</summary>
     public string UpdateStatus
@@ -317,31 +341,62 @@ public class SettingsViewModel : BindableBase
         IsRecording = !IsRecording;
     }
 
-    /// <summary>手动检查更新：检测 GitHub 最新版 → 确认 → 下载（状态栏显示进度）→ 启动安装 → 结束进程完成升级</summary>
-    private async Task CheckUpdateAsync()
+    /// <summary>打开设置时自动检查版本：不弹窗，结果展示在状态栏；发现新版时按钮变为「立即更新」</summary>
+    public async Task AutoCheckAtOpenAsync()
     {
         if (IsChecking) return;
         IsChecking = true;
         UpdateStatus = "正在检查更新…";
         try
         {
-            var info = await _update.CheckForUpdateAsync();
-            if (info == null)
-            {
-                UpdateStatus = "检查完成";
-                _ = MessageBox.Show($"当前已是最新版本（v{Version}）。\n\n若刚发布新版本请稍后再试，或检查网络/代理设置。",
-                    "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
+            await CheckAndShowAsync();
+        }
+        finally
+        {
+            IsChecking = false;
+        }
+    }
 
-            var msg = $"发现新版本 v{info.Version}（当前 v{Version}）\n\n{Truncate(info.Notes, 600)}\n\n是否立即下载并安装？";
-            if (MessageBox.Show(msg, "发现新版本", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
-            {
-                UpdateStatus = "已取消更新";
-                return;
-            }
+    /// <summary>检查更新按钮入口：已发现新版则直接下载安装，否则手动检查一次</summary>
+    private async Task CheckUpdateAsync()
+    {
+        if (IsChecking) return;
+        if (_hasUpdate && _latestInfo is not null)
+        {
+            await UpdateAsync(_latestInfo);
+            return;
+        }
+        await AutoCheckAtOpenAsync();
+    }
 
-            UpdateStatus = "正在下载安装包… 0%";
+    /// <summary>拉取最新版本并更新状态栏：区分「发现新版 / 已是最新 / 检查失败」</summary>
+    private async Task CheckAndShowAsync()
+    {
+        var info = await _update.CheckForUpdateAsync();
+        if (info == null)
+        {
+            UpdateStatus = "检查失败：无法访问 GitHub（请检查网络/代理）";
+            return;
+        }
+
+        if (!UpdateService.IsNewer(info.Version, Version))
+        {
+            UpdateStatus = $"已是最新版本（v{Version}）";
+            return;
+        }
+
+        _latestInfo = info;
+        HasUpdate = true;
+        UpdateStatus = $"发现新版本 v{info.Version}，点击「立即更新」";
+    }
+
+    /// <summary>下载安装包（状态栏显示进度）→ 启动安装程序 → 结束进程完成升级</summary>
+    private async Task UpdateAsync(UpdateInfo info)
+    {
+        IsUpdating = true;
+        UpdateStatus = "正在下载安装包… 0%";
+        try
+        {
             var progress = new Progress<double>(p => UpdateStatus = $"正在下载安装包… {p * 100:F0}%");
             var path = await _update.DownloadAsync(info, progress);
             UpdateStatus = "下载完成，即将启动安装…";
@@ -357,13 +412,9 @@ public class SettingsViewModel : BindableBase
         }
         finally
         {
-            IsChecking = false;
+            IsUpdating = false;
         }
     }
-
-    /// <summary>截断过长的更新说明，避免弹窗超长</summary>
-    private static string Truncate(string s, int max)
-        => string.IsNullOrEmpty(s) ? "" : (s.Length <= max ? s : s[..max] + "…");
 
     /// <summary>本地版本取入口程序集（Shell）版本号，三段</summary>
     private static string GetLocalVersion()

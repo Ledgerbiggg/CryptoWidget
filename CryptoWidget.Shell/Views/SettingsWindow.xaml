@@ -41,7 +41,7 @@
             <TextBlock Text="版本" Style="{StaticResource SettingsGroupTitleStyle}" />
             <DockPanel Margin="0,8,0,0">
                 <Button DockPanel.Dock="Right"
-                        Content="检查更新"
+                        Content="{Binding CheckButtonText}"
                         Width="88"
                         Command="{Binding CheckUpdateCommand}"
                         Margin="8,0,0,0">
@@ -51,6 +51,16 @@
                                 <DataTrigger Binding="{Binding IsChecking}" Value="True">
                                     <Setter Property="IsEnabled" Value="False" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding IsUpdating}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </DataTrigger>
+                                <!-- 有新版时按钮变橙色「立即更新」，醒目引导升级 -->
+                                <DataTrigger Binding="{Binding HasUpdate}" Value="True">
+                                    <Setter Property="Background" Value="#F7931A" />
+                                    <Setter Property="Foreground" Value="White" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
@@ -58,8 +68,7 @@
                 <TextBlock Text="{Binding Version, StringFormat='v{0}'}" FontWeight="SemiBold"
                            Foreground="#F7931A" VerticalAlignment="Center" />
             </DockPanel>
-            <TextBlock Text="{Binding UpdateStatus}" Foreground="#9AA4B2" FontSize="11" Margin="0,4,0,0"
-                       Visibility="{Binding IsChecking, Converter={StaticResource BoolToVisConverter}}" />
+            <TextBlock Text="{Binding UpdateStatus}" Foreground="#9AA4B2" FontSize="11" Margin="0,4,0,0" />
 
             <Separator Margin="0,12" />
 
