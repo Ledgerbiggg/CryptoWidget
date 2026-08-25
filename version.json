@@ -1,5 +1,5 @@
 {
-    "version":  "0.0.5",
-    "notes":  "## v0.0.4 更新说明\n\u003e 生成时间：2026-08-25 09:00\n\n### 🐛 问题修复\n- 🔧 修复 GitHub Actions 流水线 YAML 语法错误：heredoc 破坏缩进，改用 python -c 单行脚本\n- 📝 修复 Release 说明中文乱码：CI 统一用 Python json（utf-8-sig）读取 version.json，脚本写入改为 UTF-8 无 BOM\n\n共 2 条提交。\n",
-    "url":  "https://github.com/Ledgerbiggg/CryptoWidget/releases/latest"
+    "version": "0.0.5",
+    "notes": "## v0.0.5 更新说明\n> 生成时间：2026-08-25 10:45\n\n### ✨ 新功能\n- 🎨 价格颜色模式：设置中可选黑色 / 白色 / 红绿跳动（原勾选开关改为下拉框）\n- 📊 涨跌幅基准：可选无 / 当日（+8时区）/ 当日（UTC）/ 24小时（基于 OKX 当日开盘价 sodUtc0/sodUtc8）\n- 🔄 自动检查更新：启动后静默对比 GitHub 最新 Release，发现新版本弹窗提示，确认后下载安装包（带进度条），完成后自动启动安装程序\n\n共 1 条提交。\n",
+    "url": "https://github.com/Ledgerbiggg/CryptoWidget/releases/latest"
 }
