@@ -53,6 +53,15 @@ public partial class SettingsWindow : Window
         e.Handled = true;
     }
 
+    /// <summary>录制态下拦截所有按键：分发到 ViewModel 捕获组合键（Alt 组合时 WPF 上报 Key.System，取 SystemKey）</summary>
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm || !vm.IsRecording) return;
+        e.Handled = true;
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        vm.CaptureHotkey(Keyboard.Modifiers, key);
+    }
+
     /// <summary>ComboBox 悬停时滚轮不应改变选中项，而是滚动页面：拦截并把滚动量转交给外层 ScrollViewer</summary>
     private void ComboBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {

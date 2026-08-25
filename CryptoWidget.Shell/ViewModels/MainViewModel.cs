@@ -41,7 +41,6 @@ public class MainViewModel : BindableBase
         _settings = config.LoadSettings();
 
         OpenSettingsCommand = new DelegateCommand(OpenSettings);
-        CloseCommand = new DelegateCommand(CloseToTray);
 
         _market.TickerUpdated += OnTickerUpdated;
         _market.ConnectionChanged += OnConnectionChanged;
@@ -199,8 +198,6 @@ public class MainViewModel : BindableBase
     public double IconSize => Math.Max(14, _fontSize * 1.5);
 
     public DelegateCommand OpenSettingsCommand { get; }
-
-    public DelegateCommand CloseCommand { get; }
 
     /// <summary>保存窗口位置：基于最新配置快照仅更新位置字段（避免用启动时的旧快照覆盖币种/透明度等新改动）</summary>
     public void SaveWindowPosition(double left, double top)
@@ -388,12 +385,5 @@ public class MainViewModel : BindableBase
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
-    }
-
-    /// <summary>点击 ×：关闭窗口（MainWindow 的 Closing 会拦截并隐藏到托盘）</summary>
-    private void CloseToTray()
-    {
-        if (Application.Current.MainWindow is { } win)
-            win.Close();
     }
 }

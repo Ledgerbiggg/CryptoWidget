@@ -4,6 +4,7 @@ using System.Text;
 using System.Windows;
 using CryptoWidget.Common.AutoStart;
 using CryptoWidget.Common.Config;
+using CryptoWidget.Common.Hotkey;
 using CryptoWidget.Common.Logger;
 using CryptoWidget.Services.IService;
 using CryptoWidget.Services.Service;
@@ -70,6 +71,7 @@ public partial class App : PrismApplication
         containerRegistry.RegisterSingleton<IMarketService, MarketService>();
         containerRegistry.RegisterSingleton<ITrayService, TrayService>();
         containerRegistry.RegisterSingleton<AutoStartService>();
+        containerRegistry.RegisterSingleton<HotkeyManager>();
 
         containerRegistry.RegisterSingleton<MainViewModel>();
         containerRegistry.RegisterSingleton<SettingsViewModel>();

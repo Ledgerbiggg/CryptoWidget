@@ -8,7 +8,8 @@
         ResizeMode="NoResize"
         Background="#FF16181D"
         TextElement.Foreground="#E8ECF1"
-        FontSize="12">
+        FontSize="12"
+        PreviewKeyDown="OnPreviewKeyDown">
     <Window.Resources>
         <!-- 深色背景下控件统一白字，避免默认黑字看不清 -->
         <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
@@ -148,6 +149,48 @@
             <ComboBox ItemsSource="{Binding FontWeightOptions}"
                       SelectedItem="{Binding FontWeightName}"
                       PreviewMouseWheel="ComboBox_PreviewMouseWheel" />
+
+            <Separator Margin="0,12" />
+
+            <!-- 热键：点击「录制」后按下组合键捕获（默认 Alt+1 显示/隐藏卡片） -->
+            <TextBlock Text="热键" Style="{StaticResource SettingsGroupTitleStyle}" />
+            <TextBlock Text="点击「录制」后按下组合键即可捕获（必须含修饰键），按 Esc 取消" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,6" />
+            <DockPanel Margin="0,0,0,4">
+                <Button DockPanel.Dock="Right"
+                        Width="64"
+                        Command="{Binding RecordHotkeyCommand}"
+                        VerticalAlignment="Center"
+                        Margin="8,0,0,0">
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="录制" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                        <Setter Property="Text" Value="停止" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Button>
+                <Border Background="#2A2F3A" BorderBrush="#3A4150" BorderThickness="1" CornerRadius="4"
+                        Padding="12,6" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding HotkeyDisplay}" FontWeight="SemiBold" Foreground="#F7931A" />
+                </Border>
+            </DockPanel>
+            <TextBlock Foreground="#EF5350" FontSize="11" Margin="0,2,0,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                <Setter Property="Text" Value="🔴 请按键…（Esc 取消）" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
 
             <Separator Margin="0,12" />
 

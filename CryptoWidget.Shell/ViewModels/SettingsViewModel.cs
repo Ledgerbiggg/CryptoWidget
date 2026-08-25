@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using CryptoWidget.Common.AutoStart;
 using CryptoWidget.Common.Config;
 using CryptoWidget.Models;
@@ -7,7 +8,7 @@ using Prism.Mvvm;
 
 namespace CryptoWidget.Shell.ViewModels;
 
-/// <summary>设置窗口 ViewModel：币种增删、显示开关、开机自启、代理；改动即时保存并广播 SettingsSaved</summary>
+/// <summary>设置窗口 ViewModel：币种增删、显示开关、全局热键录制、开机自启、代理；改动即时保存并广播 SettingsSaved</summary>
 public class SettingsViewModel : BindableBase
 {
     private readonly ConfigService _config;
@@ -29,6 +30,10 @@ public class SettingsViewModel : BindableBase
     private string _proxy = "";
     private string _newSymbol = "";
     private string _errorText = "";
+    /// <summary>显示/隐藏卡片热键（默认 Alt+1）</summary>
+    private string _hotkeyModifier = "Alt";
+    private string _hotkeyKey = "1";
+    private bool _isRecording;
 
     public SettingsViewModel(ConfigService config, AutoStartService autoStart)
     {
@@ -40,6 +45,7 @@ public class SettingsViewModel : BindableBase
         MoveUpCommand = new DelegateCommand<CoinEditItem>(MoveUp);
         MoveDownCommand = new DelegateCommand<CoinEditItem>(MoveDown);
         SaveCommand = new DelegateCommand(SaveAll);
+        RecordHotkeyCommand = new DelegateCommand(ToggleRecording);
 
         Reload(); // 首次加载配置（单例 VM，之后每次打开设置窗口由窗口调用 Reload 同步最新配置）
     }
@@ -72,6 +78,9 @@ public class SettingsViewModel : BindableBase
         _fontWeightName = _settings.FontWeight;
         _autoStartEnabled = _settings.AutoStart;
         _proxy = _settings.Proxy;
+        var hotkey = _settings.ToggleHotkey ?? new HotkeyBinding { Modifier = "Alt", Key = "1" };
+        _hotkeyModifier = hotkey.Modifier ?? "Alt";
+        _hotkeyKey = hotkey.Key ?? "1";
         ErrorText = "";
     }
 
@@ -87,6 +96,9 @@ public class SettingsViewModel : BindableBase
 
     /// <summary>保存按钮：显式落盘全部配置（含小数位/代理等失焦才提交的输入）</summary>
     public DelegateCommand SaveCommand { get; }
+
+    /// <summary>录制热键开关（点击「录制」后等待捕获组合键）</summary>
+    public DelegateCommand RecordHotkeyCommand { get; }
 
     /// <summary>保存成功后触发（窗口据此弹提示并自动关闭）</summary>
     public event EventHandler? Saved;
@@ -211,6 +223,118 @@ public class SettingsViewModel : BindableBase
         set { if (SetProperty(ref _proxy, value)) Save(); }
     }
 
+    /// <summary>热键修饰键（如 Alt / Ctrl+Shift）</summary>
+    public string HotkeyModifier
+    {
+        get => _hotkeyModifier;
+        set { if (SetProperty(ref _hotkeyModifier, value)) { RaisePropertyChanged(nameof(HotkeyDisplay)); Save(); } }
+    }
+
+    /// <summary>热键触发按键（如 1 / Space / F1）</summary>
+    public string HotkeyKey
+    {
+        get => _hotkeyKey;
+        set { if (SetProperty(ref _hotkeyKey, value)) { RaisePropertyChanged(nameof(HotkeyDisplay)); Save(); } }
+    }
+
+    /// <summary>是否正在录制热键（录制态下界面提示“请按键…”）</summary>
+    public bool IsRecording
+    {
+        get => _isRecording;
+        set => SetProperty(ref _isRecording, value);
+    }
+
+    /// <summary>热键展示文本，如 “Alt + 1”</summary>
+    public string HotkeyDisplay
+    {
+        get
+        {
+            var mod = _hotkeyModifier.Trim();
+            var key = _hotkeyKey.Trim();
+            if (string.IsNullOrEmpty(mod) && string.IsNullOrEmpty(key)) return "未设置";
+            if (string.IsNullOrEmpty(mod)) return key;
+            return $"{mod} + {key}";
+        }
+    }
+
+    /// <summary>切换录制状态（点击「录制」/「停止」）</summary>
+    private void ToggleRecording()
+    {
+        IsRecording = !IsRecording;
+    }
+
+    /// <summary>由窗口 PreviewKeyDown 调用：捕获组合键（必须含修饰键，Esc 取消）</summary>
+    public void CaptureHotkey(ModifierKeys modifiers, Key key)
+    {
+        if (key == Key.Escape)
+        {
+            IsRecording = false;
+            return;
+        }
+
+        var nonModifier = GetNonModifierKey(key);
+        if (nonModifier == null) return; // 仅修饰键，继续等待
+        if (modifiers == ModifierKeys.None) return; // 必须有修饰键，避免单键误触发
+
+        IsRecording = false;
+        HotkeyModifier = ModifiersToString(modifiers);
+        HotkeyKey = nonModifier;
+    }
+
+    /// <summary>过滤纯修饰键按键，其余按键转统一名称（如 Key.D1 → “1”）</summary>
+    private static string? GetNonModifierKey(Key key)
+    {
+        if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
+            or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin
+            or Key.System)
+            return null;
+
+        return key switch
+        {
+            Key.Space => "Space",
+            Key.OemTilde => "`",
+            Key.OemMinus => "-",
+            Key.OemPlus => "=",
+            Key.OemOpenBrackets => "[",
+            Key.OemCloseBrackets => "]",
+            Key.OemPipe => "\\",
+            Key.OemSemicolon => ";",
+            Key.OemQuotes => "'",
+            Key.OemComma => ",",
+            Key.OemPeriod => ".",
+            Key.OemQuestion => "/",
+            Key.Tab => "Tab",
+            Key.Enter => "Enter",
+            Key.Back => "Back",
+            Key.Insert => "Insert",
+            Key.Delete => "Delete",
+            Key.Home => "Home",
+            Key.End => "End",
+            Key.PageUp => "PageUp",
+            Key.PageDown => "PageDown",
+            Key.Left => "Left",
+            Key.Right => "Right",
+            Key.Up => "Up",
+            Key.Down => "Down",
+            _ when key >= Key.D0 && key <= Key.D9 => ((int)key - (int)Key.D0).ToString(),
+            _ when key >= Key.NumPad0 && key <= Key.NumPad9 => ((int)key - (int)Key.NumPad0).ToString(),
+            _ when key >= Key.A && key <= Key.Z => key.ToString(),
+            _ when key >= Key.F1 && key <= Key.F24 => key.ToString(),
+            _ => key.ToString(),
+        };
+    }
+
+    /// <summary>WPF 修饰键枚举转字符串（如 Ctrl+Alt）</summary>
+    private static string ModifiersToString(ModifierKeys modifiers)
+    {
+        var parts = new List<string>();
+        if ((modifiers & ModifierKeys.Control) != 0) parts.Add("Ctrl");
+        if ((modifiers & ModifierKeys.Alt) != 0) parts.Add("Alt");
+        if ((modifiers & ModifierKeys.Shift) != 0) parts.Add("Shift");
+        if ((modifiers & ModifierKeys.Windows) != 0) parts.Add("Win");
+        return string.Join("+", parts);
+    }
+
     /// <summary>新增币种：输入代码（ETH）自动拼 ETH-USDT，也支持完整交易对（PEPE-USDT）</summary>
     private void AddCoin()
     {
@@ -302,6 +426,7 @@ public class SettingsViewModel : BindableBase
         _settings.FontWeight = _fontWeightName;
         _settings.AutoStart = _autoStartEnabled;
         _settings.Proxy = _proxy;
+        _settings.ToggleHotkey = new HotkeyBinding { Modifier = _hotkeyModifier, Key = _hotkeyKey };
         _settings.Coins = Coins
             .Select(c => new CoinConfig(c.Symbol, c.InstId) { DecimalPlaces = c.ParseDecimalPlaces() })
             .ToList();

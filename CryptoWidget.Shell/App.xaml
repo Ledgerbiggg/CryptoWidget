@@ -17,31 +17,6 @@
                 <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
             </Style>
 
-            <!-- 卡片右上角小按钮（浅色、hover 高亮） -->
-            <Style x:Key="CardButtonStyle" TargetType="Button">
-                <Setter Property="Background" Value="Transparent" />
-                <Setter Property="Foreground" Value="#9AA4B2" />
-                <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="FontSize" Value="12" />
-                <Setter Property="Width" Value="22" />
-                <Setter Property="Height" Value="22" />
-                <Setter Property="Cursor" Value="Hand" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="#26FFFFFF" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
             <!-- 钉按钮：钉住态橙色高亮 -->
             <Style x:Key="PinToggleStyle" TargetType="ToggleButton">
                 <Setter Property="Foreground" Value="#9AA4B2" />

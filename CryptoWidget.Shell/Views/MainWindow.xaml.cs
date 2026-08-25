@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using CryptoWidget.Common.Config;
+using CryptoWidget.Common.Hotkey;
 using CryptoWidget.Common.Logger;
 using CryptoWidget.Models;
 using CryptoWidget.Services.IService;
@@ -21,17 +22,23 @@ public partial class MainWindow : Window
     private readonly MainViewModel _vm;
     private readonly ITrayService _tray;
     private readonly ConfigService _config;
+    private readonly HotkeyManager _hotkeyManager;
+
+    /// <summary>显示/隐藏卡片热键动作 Id（与注册 id 对应）</summary>
+    private const string ToggleCardAction = "ToggleCard";
+    private const int ToggleCardHotkeyId = 0x1001;
 
     private AppSettings _settings;
     private HwndSource? _hwndSource;
     private bool _closingToTray = true;
 
-    public MainWindow(MainViewModel vm, ITrayService tray, ConfigService config)
+    public MainWindow(MainViewModel vm, ITrayService tray, ConfigService config, HotkeyManager hotkeyManager)
     {
         InitializeComponent();
         _vm = vm;
         _tray = tray;
         _config = config;
+        _hotkeyManager = hotkeyManager;
         _settings = config.LoadSettings();
         DataContext = vm;
 
@@ -66,6 +73,13 @@ public partial class MainWindow : Window
                 _tray.SetPinChecked(_vm.IsPinned);
         };
 
+        // 配置保存后（含设置窗口改热键）重新注册热键，立即生效
+        _config.SettingsSaved += (_, _) =>
+        {
+            _settings = _config.LoadSettings();
+            RegisterHotkey();
+        };
+
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         Closing += OnClosing;
@@ -85,6 +99,7 @@ public partial class MainWindow : Window
         {
             _tray.Show();
             _vm.Initialize();
+            RegisterHotkey();
             // 隐藏启动参数 --open-settings：启动后自动打开设置窗口（截图/调试用）
             if (Environment.GetCommandLineArgs().Contains("--open-settings"))
                 _vm.OpenSettingsCommand.Execute();
@@ -95,15 +110,49 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>窗口消息处理：收到单实例唤出消息时显示卡片</summary>
+    /// <summary>窗口消息处理：WM_HOTKEY 由 HotkeyManager 分发；单实例唤出消息时显示卡片</summary>
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WmShowInstance)
+        if (_hotkeyManager.HandleMessage(msg, wParam))
+        {
+            handled = true;
+        }
+        else if (msg == WmShowInstance)
         {
             handled = true;
             ShowCard();
         }
         return IntPtr.Zero;
+    }
+
+    /// <summary>注册显示/隐藏卡片全局热键（默认 Alt+1）；失败仅记日志不弹窗，说明被其他程序占用</summary>
+    private void RegisterHotkey()
+    {
+        try
+        {
+            _hotkeyManager.UnregisterAll();
+            _hotkeyManager.HotkeyPressed -= OnHotkeyPressed;
+            _hotkeyManager.HotkeyPressed += OnHotkeyPressed;
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+            var binding = _settings.ToggleHotkey ?? new HotkeyBinding { Modifier = "Alt", Key = "1" };
+            if (string.IsNullOrEmpty(binding.Key)) return;
+
+            if (!_hotkeyManager.Register(hwnd, ToggleCardAction, binding.Modifier, binding.Key, ToggleCardHotkeyId))
+                LoggerHelper.Warn($"热键注册失败: {binding.Modifier}+{binding.Key} — {_hotkeyManager.LastError}");
+        }
+        catch (Exception ex)
+        {
+            // 任何异常都不阻塞应用启动
+            LoggerHelper.Error("注册热键异常", ex);
+        }
+    }
+
+    /// <summary>热键触发：显示/隐藏卡片（与托盘「显示卡片」开关同一套状态同步）</summary>
+    private void OnHotkeyPressed(object? sender, string actionId)
+    {
+        if (actionId != ToggleCardAction) return;
+        ToggleShowCard();
     }
 
     /// <summary>呼出卡片到前台（托盘左键单击 / 二次启动唤出）</summary>

@@ -26,6 +26,9 @@ public class AppSettings
     /// <summary>是否已钉住（始终置顶）。默认未钉住</summary>
     public bool IsPinned { get; set; } = false;
 
+    /// <summary>显示/隐藏卡片全局热键（默认 Alt+1）</summary>
+    public HotkeyBinding ToggleHotkey { get; set; } = new() { Modifier = "Alt", Key = "1" };
+
     /// <summary>窗口位置记忆（退出时保存，启动时恢复）</summary>
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }
