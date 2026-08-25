@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>CryptoWidget.Shell</RootNamespace>
     <AssemblyName>CryptoWidget.Shell</AssemblyName>
-    <Version>0.0.6</Version>
+    <Version>0.0.7</Version>
     <!-- exe 图标：安装包快捷方式/资源管理器均显示比特币图标 -->
     <ApplicationIcon>Assets\btc.ico</ApplicationIcon>
   </PropertyGroup>

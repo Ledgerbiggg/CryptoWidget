@@ -19,7 +19,10 @@ public partial class SettingsWindow : Window
         DataContext = vm;
 
         // 点「保存设置」：弹保存成功提示并自动关闭窗口
-        vm.Saved += (_, _) => OnSaved();
+        // 注意：SettingsViewModel 是单例，必须用命名方法并在窗口关闭时退订，否则每次打开窗口都累积一次订阅，
+        // 导致保存时弹出多个「配置已保存」弹窗
+        vm.Saved += OnVmSaved;
+        Closed += (_, _) => vm.Saved -= OnVmSaved;
         // 关闭前兜底保存：防止焦点转移未触发 LostFocus 导致小数位/代理改动丢失（静默，不弹提示）
         Closing += (_, _) => vm.SaveOnClose();
 
@@ -36,6 +39,9 @@ public partial class SettingsWindow : Window
             LoggerHelper.Error("设置窗口图标加载失败（已忽略）", ex);
         }
     }
+
+    /// <summary>保存成功事件处理：提示后自动关闭设置窗口</summary>
+    private void OnVmSaved(object? sender, EventArgs e) => OnSaved();
 
     /// <summary>保存成功：提示后自动关闭设置窗口</summary>
     private void OnSaved()
