@@ -51,7 +51,8 @@ public class ConfigService
         ShowChange = true,
         ShowConnectionStatus = true,
         IsVerticalLayout = false,
-        PriceColorByTick = true,
+        PriceColorMode = PriceColorMode.RedGreen,
+        ChangeMode = ChangeMode.Last24h,
         AutoStart = false,
         IsPinned = false,
         // 默认走本地代理（用户环境），可在设置中修改或清空改回系统代理

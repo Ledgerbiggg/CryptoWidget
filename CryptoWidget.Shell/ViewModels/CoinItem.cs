@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
+using CryptoWidget.Models;
 
 namespace CryptoWidget.Shell.ViewModels;
 
@@ -19,11 +20,41 @@ public class CoinItem : INotifyPropertyChanged
     private static readonly SolidColorBrush UpBrush = new(Color.FromRgb(0x16, 0xC7, 0x84));
     private static readonly SolidColorBrush DownBrush = new(Color.FromRgb(0xEF, 0x53, 0x50));
     private static readonly SolidColorBrush DefaultPriceBrush = Brushes.White;
+    private static readonly SolidColorBrush BlackPriceBrush = Brushes.Black;
 
     static CoinItem()
     {
         UpBrush.Freeze();
         DownBrush.Freeze();
+    }
+
+    /// <summary>价格颜色模式（固定黑/白/红绿跳动），由主卡片按配置同步</summary>
+    private PriceColorMode _colorMode = PriceColorMode.RedGreen;
+
+    /// <summary>涨跌幅模式（无则不显示），由主卡片按配置同步</summary>
+    private ChangeMode _changeMode = ChangeMode.Last24h;
+
+    public PriceColorMode ColorMode
+    {
+        get => _colorMode;
+        set
+        {
+            if (_colorMode == value) return;
+            _colorMode = value;
+            UpdateTickBrush(_lastPrice); // 模式切换立即刷新颜色（暂无行情时 _lastPrice=0 走默认）
+        }
+    }
+
+    public ChangeMode ChangeMode
+    {
+        get => _changeMode;
+        set
+        {
+            if (_changeMode == value) return;
+            _changeMode = value;
+            if (value == ChangeMode.None)
+                ChangeText = "--"; // 切换到“无”立即清空，避免残留旧涨跌幅
+        }
     }
 
     public CoinItem(string symbol, string instId, int? decimalPlaces)
@@ -74,11 +105,11 @@ public class CoinItem : INotifyPropertyChanged
     /// <summary>显示小数位：取历史最大值且只升不降（同一交易对精度固定，一旦出现过小数就永远补零显示，宽度完全稳定）</summary>
     private int _displayDecimals = -1;
 
-    /// <summary>按配置格式化价格：配置了小数位则四舍五入到该位数；否则按历史最大小数位补零显示；并按跳动方向着色</summary>
-    public void ApplyPrice(string rawLast, decimal last, bool priceColorByTick)
+    /// <summary>按配置格式化价格：配置了小数位则四舍五入到该位数；否则按历史最大小数位补零显示；并按颜色模式着色</summary>
+    public void ApplyPrice(string rawLast, decimal last)
     {
         LastText = FormatPrice(rawLast, last);
-        UpdateTickBrush(last, priceColorByTick);
+        UpdateTickBrush(last);
         _lastPrice = last;
     }
 
@@ -105,17 +136,28 @@ public class CoinItem : INotifyPropertyChanged
         return idx < 0 ? 0 : s.Length - idx - 1;
     }
 
-    /// <summary>应用涨跌幅文本（+1.23% / -0.45%），颜色固定绿涨红跌（由转换器处理）</summary>
+    /// <summary>应用涨跌幅文本（+1.23% / -0.45%），颜色固定绿涨红跌（由转换器处理）；无模式显示占位 --</summary>
     public void ApplyChange(decimal changePercent)
     {
+        if (_changeMode == ChangeMode.None)
+        {
+            ChangePercent = 0;
+            ChangeText = "--";
+            return;
+        }
         ChangePercent = changePercent;
         ChangeText = (changePercent >= 0 ? "+" : "") + changePercent.ToString("F2", CultureInfo.InvariantCulture) + "%";
     }
 
-    /// <summary>价格颜色：新价比上一笔高变绿、低变红、相同保持；关闭或首笔（无上一笔）为白色</summary>
-    private void UpdateTickBrush(decimal newPrice, bool enabled)
+    /// <summary>价格颜色：红绿模式按新价比上一笔高变绿、低变红；黑/白模式固定色</summary>
+    private void UpdateTickBrush(decimal newPrice)
     {
-        if (!enabled || _lastPrice == 0m)
+        if (_colorMode != PriceColorMode.RedGreen)
+        {
+            LastBrush = _colorMode == PriceColorMode.Black ? BlackPriceBrush : DefaultPriceBrush;
+            return;
+        }
+        if (_lastPrice == 0m)
         {
             LastBrush = DefaultPriceBrush;
             return;

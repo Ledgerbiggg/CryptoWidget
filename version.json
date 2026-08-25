@@ -1,5 +1,5 @@
 {
-    "version": "0.0.4",
-    "notes": "## v0.0.4 更新说明\n> 生成时间：2026-08-25 09:00\n\n### 🐛 问题修复\n- 🔧 修复 GitHub Actions 流水线 YAML 语法错误：heredoc 破坏缩进，改用 python -c 单行脚本\n- 📝 修复 Release 说明中文乱码：CI 统一用 Python json（utf-8-sig）读取 version.json，脚本写入改为 UTF-8 无 BOM\n\n共 2 条提交。\n",
-    "url": "https://github.com/Ledgerbiggg/CryptoWidget/releases/latest"
+    "version":  "0.0.5",
+    "notes":  "## v0.0.4 更新说明\n\u003e 生成时间：2026-08-25 09:00\n\n### 🐛 问题修复\n- 🔧 修复 GitHub Actions 流水线 YAML 语法错误：heredoc 破坏缩进，改用 python -c 单行脚本\n- 📝 修复 Release 说明中文乱码：CI 统一用 Python json（utf-8-sig）读取 version.json，脚本写入改为 UTF-8 无 BOM\n\n共 2 条提交。\n",
+    "url":  "https://github.com/Ledgerbiggg/CryptoWidget/releases/latest"
 }

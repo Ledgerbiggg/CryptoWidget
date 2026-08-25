@@ -101,12 +101,20 @@ public class MainViewModel : BindableBase
         set { if (SetProperty(ref _isVerticalLayout, value)) SaveSettings(); }
     }
 
-    private bool _priceColorByTick = true;
-    /// <summary>价格颜色（大屏效果）：新价比上一笔高变绿、低变红</summary>
-    public bool PriceColorByTick
+    private PriceColorMode _priceColorMode = PriceColorMode.RedGreen;
+    /// <summary>价格颜色模式（固定黑/白/红绿跳动），改动即保存</summary>
+    public PriceColorMode PriceColorMode
     {
-        get => _priceColorByTick;
-        set { if (SetProperty(ref _priceColorByTick, value)) SaveSettings(); }
+        get => _priceColorMode;
+        set { if (SetProperty(ref _priceColorMode, value)) SaveSettings(); }
+    }
+
+    private ChangeMode _changeMode = ChangeMode.Last24h;
+    /// <summary>涨跌幅基准（无/当日+8/当日UTC/24h），改动即保存</summary>
+    public ChangeMode ChangeMode
+    {
+        get => _changeMode;
+        set { if (SetProperty(ref _changeMode, value)) SaveSettings(); }
     }
 
     private bool _isPinned;
@@ -216,7 +224,8 @@ public class MainViewModel : BindableBase
         _settings.ShowChange = ShowChange;
         _settings.ShowConnectionStatus = ShowConnectionStatus;
         _settings.IsVerticalLayout = IsVerticalLayout;
-        _settings.PriceColorByTick = PriceColorByTick;
+        _settings.PriceColorMode = PriceColorMode;
+        _settings.ChangeMode = ChangeMode;
         _settings.IsPinned = IsPinned;
         _settings.BackgroundOpacity = BackgroundOpacity;
         _settings.FontFamily = FontFamily.Source;
@@ -261,7 +270,8 @@ public class MainViewModel : BindableBase
         _showChange = _settings.ShowChange;
         _showConnectionStatus = _settings.ShowConnectionStatus;
         _isVerticalLayout = _settings.IsVerticalLayout;
-        _priceColorByTick = _settings.PriceColorByTick;
+        _priceColorMode = _settings.PriceColorMode;
+        _changeMode = _settings.ChangeMode;
         _isPinned = _settings.IsPinned;
         _backgroundOpacity = _settings.BackgroundOpacity;
         _fontFamily = ParseFontFamily(_settings.FontFamily);
@@ -275,7 +285,8 @@ public class MainViewModel : BindableBase
         RaisePropertyChanged(nameof(ShowChange));
         RaisePropertyChanged(nameof(ShowConnectionStatus));
         RaisePropertyChanged(nameof(IsVerticalLayout));
-        RaisePropertyChanged(nameof(PriceColorByTick));
+        RaisePropertyChanged(nameof(PriceColorMode));
+        RaisePropertyChanged(nameof(ChangeMode));
         RaisePropertyChanged(nameof(IsPinned));
         RaisePropertyChanged(nameof(BackgroundOpacity));
         RaisePropertyChanged(nameof(FontFamily));
@@ -286,6 +297,13 @@ public class MainViewModel : BindableBase
 
         _market.SetProxy(_settings.Proxy);
         RebuildCoins();
+
+        // 模式变化同步到已存在的币种行（增量重建不会重建已有项），下次行情推送按新模式展示
+        foreach (var item in Coins)
+        {
+            item.ColorMode = _priceColorMode;
+            item.ChangeMode = _changeMode;
+        }
     }
 
     /// <summary>按配置增量重建币种行：删除移除的、新增未订阅的，币种列表变化才重连订阅</summary>
@@ -333,8 +351,15 @@ public class MainViewModel : BindableBase
         {
             if (_coinsByInstId.TryGetValue(ticker.InstId, out var item))
             {
-                                item.ApplyPrice(ticker.RawLast, ticker.Last, PriceColorByTick);
-                                item.ApplyChange(ticker.ChangePercent);
+                // 按涨跌幅模式选取对应基准计算好的百分比
+                var change = _changeMode switch
+                {
+                    ChangeMode.DayUtc8 => ticker.ChangeUtc8,
+                    ChangeMode.DayUtc0 => ticker.ChangeUtc0,
+                    _ => ticker.ChangePercent,
+                };
+                item.ApplyPrice(ticker.RawLast, ticker.Last);
+                item.ApplyChange(change);
             }
         });
     }

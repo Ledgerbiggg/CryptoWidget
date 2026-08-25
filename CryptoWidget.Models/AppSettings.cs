@@ -17,8 +17,11 @@ public class AppSettings
     /// <summary>币种布局方向：false=横向（默认），true=竖向</summary>
     public bool IsVerticalLayout { get; set; } = false;
 
-    /// <summary>价格颜色（大屏效果）：新价比上一笔高变绿、低变红；关闭则固定白色</summary>
-    public bool PriceColorByTick { get; set; } = true;
+    /// <summary>价格颜色模式（固定黑/白/红绿跳动），默认红绿</summary>
+    public PriceColorMode PriceColorMode { get; set; } = PriceColorMode.RedGreen;
+
+    /// <summary>涨跌幅基准（无/当日+8/当日UTC/24h），默认 24h</summary>
+    public ChangeMode ChangeMode { get; set; } = ChangeMode.Last24h;
 
     /// <summary>开机自启</summary>
     public bool AutoStart { get; set; } = false;

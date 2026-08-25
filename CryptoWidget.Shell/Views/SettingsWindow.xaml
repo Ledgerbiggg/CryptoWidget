@@ -119,7 +119,21 @@
             <CheckBox Content="显示价格" IsChecked="{Binding ShowPrice}" Margin="0,2" />
             <CheckBox Content="显示涨跌幅" IsChecked="{Binding ShowChange}" Margin="0,2" />
             <CheckBox Content="显示连接状态圆点" IsChecked="{Binding ShowConnectionStatus}" Margin="0,2" />
-            <CheckBox Content="价格颜色（新价比上一笔高变绿、低变红）" IsChecked="{Binding PriceColorByTick}" Margin="0,2" />
+            <TextBlock Text="价格颜色" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
+            <ComboBox SelectedIndex="{Binding PriceColorModeIndex}"
+                      PreviewMouseWheel="ComboBox_PreviewMouseWheel">
+                <ComboBoxItem Content="黑色" />
+                <ComboBoxItem Content="白色" />
+                <ComboBoxItem Content="红绿（随涨跌跳动）" />
+            </ComboBox>
+            <TextBlock Text="涨跌幅" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
+            <ComboBox SelectedIndex="{Binding ChangeModeIndex}"
+                      PreviewMouseWheel="ComboBox_PreviewMouseWheel">
+                <ComboBoxItem Content="无" />
+                <ComboBoxItem Content="当日（+8时区）" />
+                <ComboBoxItem Content="当日（UTC）" />
+                <ComboBoxItem Content="24小时" />
+            </ComboBox>
             <TextBlock Text="币种布局" Foreground="#9AA4B2" FontSize="11" Margin="0,10,0,4" />
             <ComboBox SelectedIndex="{Binding LayoutIndex}"
                       PreviewMouseWheel="ComboBox_PreviewMouseWheel">

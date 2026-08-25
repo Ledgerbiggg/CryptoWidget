@@ -21,7 +21,12 @@ public class SettingsViewModel : BindableBase
     private bool _showChange = true;
     private bool _showConnectionStatus = true;
     private bool _isVerticalLayout;
-    private bool _priceColorByTick = true;
+    /// <summary>价格颜色模式（0=黑 1=白 2=红绿）</summary>
+    private PriceColorMode _priceColorMode = PriceColorMode.RedGreen;
+
+    /// <summary>涨跌幅基准（0=无 1=当日+8 2=当日UTC 3=24h）</summary>
+    private ChangeMode _changeMode = ChangeMode.Last24h;
+
     private double _backgroundOpacity = 0.12;
     private string _fontFamilyName = "Microsoft YaHei UI";
     private double _fontSize = 12;
@@ -71,7 +76,8 @@ public class SettingsViewModel : BindableBase
         _showChange = _settings.ShowChange;
         _showConnectionStatus = _settings.ShowConnectionStatus;
         _isVerticalLayout = _settings.IsVerticalLayout;
-        _priceColorByTick = _settings.PriceColorByTick;
+        _priceColorMode = _settings.PriceColorMode;
+        _changeMode = _settings.ChangeMode;
         _backgroundOpacity = _settings.BackgroundOpacity;
         _fontFamilyName = _settings.FontFamily;
         _fontSize = _settings.FontSize;
@@ -159,11 +165,28 @@ public class SettingsViewModel : BindableBase
         }
     }
 
-    /// <summary>价格颜色（大屏效果）：新价比上一笔高变绿、低变红</summary>
-    public bool PriceColorByTick
+    /// <summary>价格颜色下拉（0=黑色 1=白色 2=红绿）</summary>
+    public int PriceColorModeIndex
     {
-        get => _priceColorByTick;
-        set { if (SetProperty(ref _priceColorByTick, value)) Save(); }
+        get => (int)_priceColorMode;
+        set
+        {
+            var mode = (PriceColorMode)value;
+            if (SetProperty(ref _priceColorMode, mode))
+                Save();
+        }
+    }
+
+    /// <summary>涨跌幅下拉（0=无 1=当日+8时区 2=当日UTC 3=24小时）</summary>
+    public int ChangeModeIndex
+    {
+        get => (int)_changeMode;
+        set
+        {
+            var mode = (ChangeMode)value;
+            if (SetProperty(ref _changeMode, mode))
+                Save();
+        }
     }
 
     /// <summary>卡片背景不透明度（越小越透明）</summary>
@@ -419,7 +442,8 @@ public class SettingsViewModel : BindableBase
         _settings.ShowChange = _showChange;
         _settings.ShowConnectionStatus = _showConnectionStatus;
         _settings.IsVerticalLayout = _isVerticalLayout;
-        _settings.PriceColorByTick = _priceColorByTick;
+        _settings.PriceColorMode = _priceColorMode;
+        _settings.ChangeMode = _changeMode;
         _settings.BackgroundOpacity = _backgroundOpacity;
         _settings.FontFamily = _fontFamilyName;
         _settings.FontSize = _fontSize;

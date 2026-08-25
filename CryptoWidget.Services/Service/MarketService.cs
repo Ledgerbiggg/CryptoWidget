@@ -198,10 +198,13 @@ public class MarketService : IMarketService, IDisposable
                     return;
                 }
 
-                // 涨跌幅 = (last - open24h) / open24h * 100
+                // 涨跌幅 = (last - open) / open * 100；三种基准：24h 开盘 / UTC 零点开盘 / UTC+8 零点开盘
                 decimal change = 0;
                 if (decimal.TryParse(open24h, out var open) && open != 0)
                     change = (last - open) / open * 100m;
+
+                var sodUtc0 = d.TryGetProperty("sodUtc0", out var s0) ? s0.GetString() ?? "" : "";
+                var sodUtc8 = d.TryGetProperty("sodUtc8", out var s8) ? s8.GetString() ?? "" : "";
 
                 TickerUpdated?.Invoke(this, new Ticker
                 {
@@ -209,6 +212,8 @@ public class MarketService : IMarketService, IDisposable
                     Last = last,
                     RawLast = lastStr,
                     ChangePercent = change,
+                    ChangeUtc0 = ChangeOf(sodUtc0, last),
+                    ChangeUtc8 = ChangeOf(sodUtc8, last),
                     Connected = true,
                 });
                 return;
@@ -290,7 +295,14 @@ public class MarketService : IMarketService, IDisposable
         }
     }
 
-   /// <summary>发送订阅消息（tickers 频道，一次订阅全部交易对）</summary>
+    /// <summary>按开盘价计算涨跌幅百分比（开盘价缺失/为零返回 0）</summary>
+    private static decimal ChangeOf(string openStr, decimal last)
+    {
+        if (!decimal.TryParse(openStr, out var open) || open == 0) return 0;
+        return (last - open) / open * 100m;
+    }
+
+    /// <summary>发送订阅消息（tickers 频道，一次订阅全部交易对）</summary>
     private void SendSubscribe()
     {
         lock (_lock)

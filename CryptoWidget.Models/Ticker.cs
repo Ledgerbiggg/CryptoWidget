@@ -14,6 +14,12 @@ public class Ticker
     /// <summary>24h 涨跌幅（百分比，如 1.23 表示 +1.23%）</summary>
     public decimal ChangePercent { get; set; }
 
+    /// <summary>当日（UTC 零点开盘）涨跌幅，百分比</summary>
+    public decimal ChangeUtc0 { get; set; }
+
+    /// <summary>当日（UTC+8 零点开盘）涨跌幅，百分比</summary>
+    public decimal ChangeUtc8 { get; set; }
+
     /// <summary>连接状态</summary>
     public bool Connected { get; set; } = false;
 }

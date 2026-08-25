@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private readonly ITrayService _tray;
     private readonly ConfigService _config;
     private readonly HotkeyManager _hotkeyManager;
+    private readonly IUpdateService _update;
 
     /// <summary>显示/隐藏卡片热键动作 Id（与注册 id 对应）</summary>
     private const string ToggleCardAction = "ToggleCard";
@@ -32,13 +33,14 @@ public partial class MainWindow : Window
     private HwndSource? _hwndSource;
     private bool _closingToTray = true;
 
-    public MainWindow(MainViewModel vm, ITrayService tray, ConfigService config, HotkeyManager hotkeyManager)
+    public MainWindow(MainViewModel vm, ITrayService tray, ConfigService config, HotkeyManager hotkeyManager, IUpdateService update)
     {
         InitializeComponent();
         _vm = vm;
         _tray = tray;
         _config = config;
         _hotkeyManager = hotkeyManager;
+        _update = update;
         _settings = config.LoadSettings();
         DataContext = vm;
 
@@ -100,6 +102,7 @@ public partial class MainWindow : Window
             _tray.Show();
             _vm.Initialize();
             RegisterHotkey();
+            _ = CheckForUpdateDelayedAsync();
             // 隐藏启动参数 --open-settings：启动后自动打开设置窗口（截图/调试用）
             if (Environment.GetCommandLineArgs().Contains("--open-settings"))
                 _vm.OpenSettingsCommand.Execute();
@@ -154,6 +157,49 @@ public partial class MainWindow : Window
         if (actionId != ToggleCardAction) return;
         ToggleShowCard();
     }
+
+    /// <summary>延迟启动检查更新：等主界面稳定后静默查询，有新版本弹确认，确认后下载（带进度）并启动安装</summary>
+    private async Task CheckForUpdateDelayedAsync()
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            var info = await _update.CheckForUpdateAsync();
+            if (info == null) return; // 无更新/网络异常静默
+
+            var msg = $"发现新版本 v{info.Version}\n\n{Truncate(info.Notes, 600)}\n\n是否立即下载更新？";
+            if (MessageBox.Show(this, msg, "发现新版本", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+
+            var win = new UpdateProgressWindow(info.Version);
+            var progress = new Progress<double>(p => win.UpdateProgress(p * 100));
+            win.Show();
+
+            try
+            {
+                var path = await _update.DownloadAsync(info, progress);
+                win.Close();
+                _update.LaunchInstaller(path);
+                // 安装程序需要覆盖正在运行的 exe，先退出本应用
+                _closingToTray = false;
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                win.Close();
+                LoggerHelper.Error("下载更新失败", ex);
+                MessageBox.Show(this, $"下载更新失败：{ex.Message}", "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warn($"检查更新异常: {ex.Message}");
+        }
+    }
+
+    /// <summary>截断过长的更新说明，避免弹窗超长</summary>
+    private static string Truncate(string s, int max)
+        => string.IsNullOrEmpty(s) ? "" : (s.Length <= max ? s : s[..max] + "…");
 
     /// <summary>呼出卡片到前台（托盘左键单击 / 二次启动唤出）</summary>
     private void ShowCard()

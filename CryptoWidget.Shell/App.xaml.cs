@@ -70,6 +70,7 @@ public partial class App : PrismApplication
 
         containerRegistry.RegisterSingleton<IMarketService, MarketService>();
         containerRegistry.RegisterSingleton<ITrayService, TrayService>();
+        containerRegistry.RegisterSingleton<IUpdateService, UpdateService>();
         containerRegistry.RegisterSingleton<AutoStartService>();
         containerRegistry.RegisterSingleton<HotkeyManager>();
 
