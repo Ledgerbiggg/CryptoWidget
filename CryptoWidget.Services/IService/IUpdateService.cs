@@ -16,8 +16,11 @@ public class UpdateInfo
 /// <summary>版本更新检测服务：查 GitHub 最新 Release、下载安装包、启动安装</summary>
 public interface IUpdateService
 {
-    /// <summary>拉取 GitHub 最新 Release 信息（是否比本地新由调用方用 UpdateService.IsNewer 判断）；网络/解析失败返回 null</summary>
+    /// <summary>拉取 GitHub 最新版本信息（是否比本地新由调用方用 UpdateService.IsNewer 判断）；网络/解析失败返回 null</summary>
     Task<UpdateInfo?> CheckForUpdateAsync();
+
+    /// <summary>设置/更改代理（如 空串走环境变量+系统代理）；改动立即生效</summary>
+    void SetProxy(string proxy);
 
     /// <summary>下载安装包到本地（progress 报告 0~1），返回本地文件路径</summary>
     Task<string> DownloadAsync(UpdateInfo info, IProgress<double> progress);

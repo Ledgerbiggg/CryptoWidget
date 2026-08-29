@@ -9,60 +9,93 @@ using CryptoWidget.Services.IService;
 
 namespace CryptoWidget.Services.Service;
 
-/// <summary>版本更新检测：GitHub Releases API 查最新版与安装包下载地址，
-/// 流式下载（带进度）后启动安装程序。代理复用设置里的显式代理，否则系统代理</summary>
+/// <summary>版本更新检测：从 raw.githubusercontent.com 读取仓库根 version.json 获取最新版与说明，
+/// 再按版本号拼出安装包下载地址；流式下载（带进度）后启动安装。
+/// 代理优先级：显式设置 &gt; 环境变量(HTTPS_PROXY/HTTP_PROXY) &gt; 系统 WinINET 代理。</summary>
 public class UpdateService : IUpdateService
 {
-    /// <summary>GitHub 最新 Release 接口（tag_name 即版本号，assets 含安装包）</summary>
-    private const string LatestApiUrl = "https://api.github.com/repos/Ledgerbiggg/CryptoWidget/releases/latest";
+    /// <summary>最新版本信息源：raw 文件独立于 GitHub API 的 60 次/小时匿名限流，配额高得多，
+    /// 且 version.json 随每次发版提交到 main，release 工作流也会同步 notes</summary>
+    private const string RawVersionUrl = "https://raw.githubusercontent.com/Ledgerbiggg/CryptoWidget/main/version.json";
 
-    private readonly HttpClient _client;
+    /// <summary>安装包下载地址模板：Release tag 为 v{version}，资产名为 CryptoWidget-Setup-{version}.exe</summary>
+    private const string DownloadUrlTemplate = "https://github.com/Ledgerbiggg/CryptoWidget/releases/download/v{0}/CryptoWidget-Setup-{0}.exe";
+
     private readonly ConfigService _config;
+    private HttpClient _client;
+    private string _proxy;
+
+    /// <summary>内存缓存：避免频繁打开设置狂打 GitHub（限流/抖动），缓存期内直接返回</summary>
+    private (DateTime Time, UpdateInfo? Info)? _cache;
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
 
     public UpdateService(ConfigService config)
     {
         _config = config;
-        _client = CreateClient(config.LoadSettings().Proxy);
+        _proxy = config.LoadSettings().Proxy;
+        _client = CreateClient(_proxy);
     }
 
-    /// <summary>拉取 GitHub 最新 Release 信息（是否比本地新由调用方用 IsNewer 判断）；网络/解析失败返回 null</summary>
+    /// <summary>设置/更改代理后调用，重建 HttpClient 使新代理立即生效（应用启动后开启代理也生效）</summary>
+    public void SetProxy(string proxy)
+    {
+        var next = proxy ?? "";
+        if (next == _proxy) return;
+        _proxy = next;
+        var old = _client;
+        _client = CreateClient(_proxy);
+        try { old.Dispose(); } catch { }
+        _cache = null; // 代理变了，旧缓存失效
+    }
+
+    /// <summary>拉取最新版本信息（是否比本地新由调用方用 IsNewer 判断）；网络/解析失败返回 null。
+    /// 含 3 次重试（GitHub 国内偶发抖动）与 5 分钟缓存</summary>
     public async Task<UpdateInfo?> CheckForUpdateAsync()
     {
-        try
+        // 缓存命中：缓存期内直接返回，避免重复请求触发限流/抖动
+        if (_cache.HasValue && DateTime.Now - _cache.Value.Time < CacheTtl)
+            return _cache.Value.Info;
+
+        UpdateInfo? result = null;
+        for (int attempt = 1; attempt <= 3; attempt++)
         {
-            var resp = await _client.GetAsync(LatestApiUrl);
-            if (!resp.IsSuccessStatusCode) return null;
-
-            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-            var root = doc.RootElement;
-            var version = root.TryGetProperty("tag_name", out var t) ? (t.GetString() ?? "").TrimStart('v', 'V') : "";
-            var notes = root.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
-
-            // assets 里找 CryptoWidget-Setup-x.y.z.exe 安装包（Release 页只放这一个安装包）
-            string? downloadUrl = null;
-            if (root.TryGetProperty("assets", out var assets))
+            try
             {
-                foreach (var asset in assets.EnumerateArray())
-                {
-                    var name = asset.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
-                    if (!name.StartsWith("CryptoWidget-Setup", StringComparison.OrdinalIgnoreCase)) continue;
-                    if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) continue;
-                    downloadUrl = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
-                    break;
-                }
+                result = await FetchAsync();
+                break;
             }
-
-            if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(downloadUrl))
-                return null;
-
-            return new UpdateInfo { Version = version, Notes = notes, DownloadUrl = downloadUrl };
+            catch (Exception ex)
+            {
+                // 网络/解析失败静默：不打扰用户，调用方依据 null 展示「检查失败」状态
+                LoggerHelper.Warn($"检查更新第 {attempt} 次失败: {ex.Message}");
+                if (attempt < 3) await Task.Delay(800 * attempt);
+            }
         }
-        catch (Exception ex)
+        _cache = (DateTime.Now, result);
+        return result;
+    }
+
+    /// <summary>从 raw version.json 解析版本与说明，并按版本号拼出下载地址</summary>
+    private async Task<UpdateInfo?> FetchAsync()
+    {
+        using var resp = await _client.GetAsync(RawVersionUrl);
+        if (!resp.IsSuccessStatusCode)
         {
-            // 网络/解析失败静默：不打扰用户，调用方依据 null 展示「检查失败」状态
-            LoggerHelper.Warn($"检查更新失败: {ex.Message}");
+            LoggerHelper.Warn($"version.json 拉取失败 HTTP {(int)resp.StatusCode}");
             return null;
         }
+
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        var version = root.TryGetProperty("version", out var v) ? (v.GetString() ?? "").Trim() : "";
+        var notes = root.TryGetProperty("notes", out var b) ? b.GetString() ?? "" : "";
+
+        if (string.IsNullOrEmpty(version))
+            return null;
+
+        var clean = version.TrimStart('v', 'V');
+        var downloadUrl = string.Format(DownloadUrlTemplate, clean);
+        return new UpdateInfo { Version = clean, Notes = notes, DownloadUrl = downloadUrl };
     }
 
     /// <summary>流式下载安装包到 %AppData%\CryptoWidget\updates\（progress 报告 0~1）</summary>
@@ -97,31 +130,43 @@ public class UpdateService : IUpdateService
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
     }
 
-
-    /// <summary>构造 HttpClient：显式代理优先，否则系统代理；GitHub API 要求 User-Agent</summary>
+    /// <summary>构造 HttpClient：显式代理优先，否则环境变量，再否则系统代理；GitHub API 要求 User-Agent</summary>
     private static HttpClient CreateClient(string proxy)
     {
         var handler = new HttpClientHandler();
-        if (!string.IsNullOrEmpty(proxy))
+        var resolved = ResolveProxy(proxy);
+        if (resolved != null)
         {
-            try
-            {
-                handler.Proxy = new WebProxy(proxy);
-            }
-            catch (Exception ex)
-            {
-                LoggerHelper.Error($"更新代理解析失败，改用系统代理: {proxy}", ex);
-            }
-        }
-        else
-        {
-            handler.Proxy = WebRequest.GetSystemWebProxy();
+            // 显式设置代理；不设则 HttpClientHandler 走默认策略（环境变量 + 系统代理）
+            handler.Proxy = resolved;
+            handler.UseProxy = true;
         }
 
-        // 下载安装包可达数十 MB，超时须放宽到 5 分钟（10 秒只够 API 检查，下载必超时）
+        // 下载安装包可达数十 MB，超时须放宽到 5 分钟
         var client = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(5) };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("CryptoWidget-UpdateChecker");
         return client;
+    }
+
+    /// <summary>解析代理：显式 &gt; 环境变量(HTTPS_PROXY/HTTP_PROXY，Clash/WSL/终端代理常用，GetSystemWebProxy 读不到) &gt; 系统 WinINET 代理；都没有返回 null（直连）</summary>
+    private static IWebProxy? ResolveProxy(string proxy)
+    {
+        if (!string.IsNullOrEmpty(proxy))
+        {
+            try { return new WebProxy(proxy); }
+            catch (Exception ex) { LoggerHelper.Error($"更新代理解析失败，改走默认代理: {proxy}", ex); }
+        }
+
+        var env = Environment.GetEnvironmentVariable("HTTPS_PROXY")
+               ?? Environment.GetEnvironmentVariable("HTTP_PROXY");
+        if (!string.IsNullOrEmpty(env))
+        {
+            try { return new WebProxy(env.Trim()); }
+            catch (Exception ex) { LoggerHelper.Error($"环境变量代理解析失败，改走系统代理: {env}", ex); }
+        }
+
+        // 与 OKX 行情一致的系统 WinINET 代理
+        return WebRequest.GetSystemWebProxy();
     }
 
     /// <summary>判断远程版本是否比本地新（SemVer 三元组比较；支持 -beta 预发布后缀，正式版优先于预览版）</summary>

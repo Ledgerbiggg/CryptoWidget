@@ -638,6 +638,7 @@ public class SettingsViewModel : BindableBase
         _settings.FontWeight = _fontWeightName;
         _settings.AutoStart = _autoStartEnabled;
         _settings.Proxy = _proxy;
+        _update.SetProxy(_proxy); // 代理改动立即对更新检查生效（启动后开代理也生效）
         _settings.ToggleHotkey = new HotkeyBinding { Modifier = _hotkeyModifier, Key = _hotkeyKey };
         _settings.Coins = Coins
             .Select(c => new CoinConfig(c.Symbol, c.InstId) { DecimalPlaces = c.ParseDecimalPlaces() })
