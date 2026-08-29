@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace CryptoWidget.Services.IService;
 
 /// <summary>系统托盘服务（仿 AIMux TrayService 事件模型，仅保留 Quit）</summary>
@@ -18,6 +20,9 @@ public interface ITrayService
     /// <summary>右键菜单 Quit</summary>
     event EventHandler? ExitRequested;
 
+    /// <summary>右键菜单「配置方案」子菜单选中某方案（参数为方案 Id）</summary>
+    event EventHandler<string>? ProfileSelectionRequested;
+
     void Show();
     void Hide();
 
@@ -26,4 +31,7 @@ public interface ITrayService
 
     /// <summary>同步右键菜单「显示卡片」项的勾选状态（卡片可见时打勾）</summary>
     void SetShowChecked(bool visible);
+
+    /// <summary>刷新右键菜单「配置方案」子菜单（列出方案，当前激活项打勾）</summary>
+    void RefreshProfiles(IEnumerable<(string Id, string Name)> profiles, string activeId);
 }

@@ -6,6 +6,12 @@ public class AppSettings
     /// <summary>订阅币种列表</summary>
     public List<CoinConfig> Coins { get; set; } = new() { new CoinConfig("BTC", "BTC-USDT") };
 
+    /// <summary>当前生效的外观方案 Id（对应 Profiles 中的一项）</summary>
+    public string ActiveProfileId { get; set; } = "";
+
+    /// <summary>外观方案存档池（命名切换，仅覆盖外观字段）；为空时由 ConfigService 自动用当前外观生成「默认」方案</summary>
+    public List<AppearanceProfile> Profiles { get; set; } = new();
+
     public bool ShowIcon { get; set; } = true;
     public bool ShowName { get; set; } = true;
     public bool ShowPrice { get; set; } = true;

@@ -51,6 +51,10 @@ public class SettingsViewModel : BindableBase
     private string _updateStatus = "";
     private UpdateInfo? _latestInfo;
     private bool _hasUpdate;
+    /// <summary>当前选中的外观方案 Id（下拉切换即应用）</summary>
+    private string _activeProfileId = "";
+    /// <summary>另存为时输入的新方案名</summary>
+    private string _newProfileName = "";
 
     public SettingsViewModel(ConfigService config, AutoStartService autoStart, IUpdateService update)
     {
@@ -63,6 +67,8 @@ public class SettingsViewModel : BindableBase
         MoveUpCommand = new DelegateCommand<CoinEditItem>(MoveUp);
         MoveDownCommand = new DelegateCommand<CoinEditItem>(MoveDown);
         SaveCommand = new DelegateCommand(SaveAll);
+        SaveAsProfileCommand = new DelegateCommand(SaveAsProfile);
+        DeleteProfileCommand = new DelegateCommand(DeleteProfile, CanDeleteProfile);
         RecordHotkeyCommand = new DelegateCommand(ToggleRecording);
         CheckUpdateCommand = new DelegateCommand(async () => await CheckUpdateAsync());
         Version = GetLocalVersion();
@@ -75,6 +81,12 @@ public class SettingsViewModel : BindableBase
     public void Reload()
     {
         _settings = _config.LoadSettings();
+        Profiles.Clear();
+        foreach (var p in _settings.Profiles ?? new List<AppearanceProfile>())
+            Profiles.Add(p);
+        _activeProfileId = _settings.ActiveProfileId;
+        RaisePropertyChanged(nameof(ActiveProfileId));
+        DeleteProfileCommand.RaiseCanExecuteChanged();
         Coins.Clear();
         foreach (var c in _settings.Coins)
         {
@@ -117,6 +129,45 @@ public class SettingsViewModel : BindableBase
 
     /// <summary>保存按钮：显式落盘全部配置（含小数位/代理等失焦才提交的输入）</summary>
     public DelegateCommand SaveCommand { get; }
+
+    /// <summary>外观方案列表（设置窗口下拉 / 托盘菜单共用）</summary>
+    public ObservableCollection<AppearanceProfile> Profiles { get; } = [];
+
+    /// <summary>当前选中的方案 Id（下拉切换即应用）</summary>
+    public string ActiveProfileId
+    {
+        get => _activeProfileId;
+        set { if (SetProperty(ref _activeProfileId, value)) SwitchProfile(value); }
+    }
+
+    /// <summary>另存为时输入的新方案名</summary>
+    public string NewProfileName
+    {
+        get => _newProfileName;
+        set => SetProperty(ref _newProfileName, value);
+    }
+
+    /// <summary>当前方案名（改名即写回当前方案）</summary>
+    public string CurrentProfileName
+    {
+        get => _settings.Profiles?.FirstOrDefault(p => p.Id == _settings.ActiveProfileId)?.Name ?? "";
+        set
+        {
+            var p = _settings.Profiles?.FirstOrDefault(x => x.Id == _settings.ActiveProfileId);
+            if (p == null) return;
+            var name = value.Trim();
+            if (string.IsNullOrEmpty(name) || p.Name == name) return;
+            p.Name = name;
+            _config.SaveSettings(_settings);
+            Reload(); // 重建 Profiles 集合，让下拉即时显示新名称
+        }
+    }
+
+    /// <summary>另存为当前外观为新方案</summary>
+    public DelegateCommand SaveAsProfileCommand { get; }
+
+    /// <summary>删除当前方案（至少保留一个）</summary>
+    public DelegateCommand DeleteProfileCommand { get; }
 
     /// <summary>录制热键开关（点击「录制」后等待捕获组合键）</summary>
     public DelegateCommand RecordHotkeyCommand { get; }
@@ -591,6 +642,75 @@ public class SettingsViewModel : BindableBase
         _settings.Coins = Coins
             .Select(c => new CoinConfig(c.Symbol, c.InstId) { DecimalPlaces = c.ParseDecimalPlaces() })
             .ToList();
+        SyncActiveProfile();
         _config.SaveSettings(_settings);
     }
+
+    /// <summary>下拉切换方案：把方案外观写回文件并广播（主卡片即时刷新），再 Reload 同步编辑态</summary>
+    private void SwitchProfile(string id)
+    {
+        if (Profiles.FirstOrDefault(x => x.Id == id) == null) return;
+        _config.ApplyProfile(id);
+        Reload();
+    }
+
+    /// <summary>把当前 VM 外观字段同步写回激活的方案（改动即覆盖当前方案）</summary>
+    private void SyncActiveProfile()
+    {
+        var active = _settings.Profiles?.FirstOrDefault(p => p.Id == _settings.ActiveProfileId);
+        if (active == null) return;
+        active.ShowIcon = _showIcon;
+        active.ShowName = _showName;
+        active.ShowPrice = _showPrice;
+        active.ShowChange = _showChange;
+        active.ShowConnectionStatus = _showConnectionStatus;
+        active.IsVerticalLayout = _isVerticalLayout;
+        active.PriceColorMode = _priceColorMode;
+        active.ChangeMode = _changeMode;
+        active.BackgroundOpacity = _backgroundOpacity;
+        active.FontFamily = _fontFamilyName;
+        active.FontSize = _fontSize;
+        active.FontWeight = _fontWeightName;
+    }
+
+    /// <summary>另存为：以当前外观复制出一个新方案并激活（外观不变，仅切换存档目标）</summary>
+    private void SaveAsProfile()
+    {
+        var name = (_newProfileName ?? "").Trim();
+        if (string.IsNullOrEmpty(name)) name = $"方案{Profiles.Count + 1}";
+        if (Profiles.Any(p => p.Name == name))
+        {
+            ErrorText = $"已存在方案「{name}」";
+            return;
+        }
+        var p = AppearanceProfile.FromSettings(_settings, name);
+        Profiles.Add(p);
+        _settings.Profiles.Add(p);
+        _settings.ActiveProfileId = p.Id;
+        _activeProfileId = p.Id;
+        RaisePropertyChanged(nameof(ActiveProfileId));
+        _config.SaveSettings(_settings);
+        NewProfileName = "";
+        ErrorText = "";
+    }
+
+    /// <summary>删除当前方案，自动切到首个余下方案（至少保留一个）</summary>
+    private void DeleteProfile()
+    {
+        if (Profiles.Count <= 1)
+        {
+            ErrorText = "至少保留一个方案";
+            return;
+        }
+        var cur = Profiles.FirstOrDefault(p => p.Id == _activeProfileId);
+        if (cur == null) return;
+        Profiles.Remove(cur);
+        _settings.Profiles.Remove(cur);
+        _config.SaveSettings(_settings); // 先落盘移除
+        var next = Profiles[0];
+        SwitchProfile(next.Id);          // 再应用下一个并 Reload
+    }
+
+    /// <summary>删除命令可用性：仅当存在多个方案时可删</summary>
+    private bool CanDeleteProfile() => Profiles.Count > 1;
 }

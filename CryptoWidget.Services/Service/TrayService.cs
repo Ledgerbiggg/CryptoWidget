@@ -1,5 +1,6 @@
 using CryptoWidget.Common.Logger;
 using CryptoWidget.Services.IService;
+using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace CryptoWidget.Services.Service;
@@ -10,12 +11,15 @@ public class TrayService : ITrayService, IDisposable
     private NotifyIcon? _notify;
     private ToolStripMenuItem? _pinMenu;
     private ToolStripMenuItem? _showMenu;
+    private ToolStripMenuItem? _profileMenu;
 
     public event EventHandler? OpenRequested;
     public event EventHandler? PinRequested;
     public event EventHandler? ShowToggleRequested;
     public event EventHandler? SettingsRequested;
     public event EventHandler? ExitRequested;
+    /// <summary>托盘「配置方案」子菜单选中某方案时触发（参数为方案 Id）</summary>
+    public event EventHandler<string>? ProfileSelectionRequested;
 
     public void Show()
     {
@@ -54,6 +58,8 @@ public class TrayService : ITrayService, IDisposable
         quit.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
         menu.Items.Add(_showMenu);
         menu.Items.Add(_pinMenu);
+        _profileMenu = new ToolStripMenuItem("配置方案");
+        menu.Items.Add(_profileMenu);
         menu.Items.Add(settings);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(quit);
@@ -72,6 +78,23 @@ public class TrayService : ITrayService, IDisposable
     {
         if (_showMenu != null)
             _showMenu.Checked = visible;
+    }
+
+    /// <summary>刷新托盘「配置方案」子菜单：列出各方案，当前激活项打勾；末项「管理方案…」打开设置窗口</summary>
+    public void RefreshProfiles(IEnumerable<(string Id, string Name)> profiles, string activeId)
+    {
+        if (_profileMenu == null) return;
+        _profileMenu.DropDownItems.Clear();
+        foreach (var (id, name) in profiles)
+        {
+            var item = new ToolStripMenuItem(name) { Checked = id == activeId };
+            item.Click += (_, _) => ProfileSelectionRequested?.Invoke(this, id);
+            _profileMenu.DropDownItems.Add(item);
+        }
+        _profileMenu.DropDownItems.Add(new ToolStripSeparator());
+        var manage = new ToolStripMenuItem("管理方案…");
+        manage.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+        _profileMenu.DropDownItems.Add(manage);
     }
 
     public void Hide()

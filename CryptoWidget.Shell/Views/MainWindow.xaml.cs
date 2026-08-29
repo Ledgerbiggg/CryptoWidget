@@ -65,6 +65,8 @@ public partial class MainWindow : Window
         _tray.ShowToggleRequested += (_, _) => ToggleShowCard();
         _tray.PinRequested += (_, _) => _vm.IsPinned = !_vm.IsPinned;
         _tray.SettingsRequested += (_, _) => _vm.OpenSettingsCommand.Execute();
+        // 托盘「配置方案」选中：应用外观方案（写回文件并广播，主卡片即时刷新）
+        _tray.ProfileSelectionRequested += (_, id) => _config.ApplyProfile(id);
         _tray.ExitRequested += (_, _) => ExitApp();
         // 置顶状态变化时同步托盘菜单勾选状态
         _vm.PropertyChanged += (_, e) =>
@@ -73,11 +75,12 @@ public partial class MainWindow : Window
                 _tray.SetPinChecked(_vm.IsPinned);
         };
 
-        // 配置保存后（含设置窗口改热键）重新注册热键，立即生效
+        // 配置保存后（含设置窗口改热键/切换方案）重新注册热键、刷新托盘方案菜单，立即生效
         _config.SettingsSaved += (_, _) =>
         {
             _settings = _config.LoadSettings();
             RegisterHotkey();
+            RefreshTrayProfiles();
         };
 
         SourceInitialized += OnSourceInitialized;
@@ -98,6 +101,7 @@ public partial class MainWindow : Window
         try
         {
             _tray.Show();
+            RefreshTrayProfiles();
             _vm.Initialize();
             RegisterHotkey();
             // 隐藏启动参数 --open-settings：启动后自动打开设置窗口（截图/调试用）
@@ -212,6 +216,14 @@ public partial class MainWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _hwndSource?.RemoveHook(WndProc);
+    }
+
+    /// <summary>把当前方案池同步到托盘菜单（切换/增删/改名后即时反映勾选与列表）</summary>
+    private void RefreshTrayProfiles()
+    {
+        var profiles = (_settings.Profiles ?? new List<AppearanceProfile>())
+            .Select(p => (p.Id, p.Name));
+        _tray.RefreshProfiles(profiles, _settings.ActiveProfileId);
     }
 
     /// <summary>恢复上次窗口位置（默认屏幕右上角），显示器变化后越界则回退到默认位置</summary>
