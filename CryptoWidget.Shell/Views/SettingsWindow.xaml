@@ -72,30 +72,25 @@
 
             <Separator Margin="0,12" />
 
-            <!-- 配置方案：命名存档多套外观，托盘右键可一键切换 -->
+            <!-- 配置方案：下拉框切换，另存为新方案保存当前外观与窗口位置 -->
             <TextBlock Text="配置方案" Style="{StaticResource SettingsGroupTitleStyle}" />
-            <TextBlock Text="命名存档多套外观，可在托盘右键一键切换" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
-            <ComboBox ItemsSource="{Binding Profiles}"
-                      DisplayMemberPath="Name"
-                      SelectedValuePath="Id"
-                      SelectedValue="{Binding ActiveProfileId}"
-                      PreviewMouseWheel="ComboBox_PreviewMouseWheel" />
-            <DockPanel Margin="0,6,0,0">
-                <TextBlock DockPanel.Dock="Left" Text="当前方案名" Foreground="#9AA4B2" FontSize="11" VerticalAlignment="Center" />
-                <TextBox Text="{Binding CurrentProfileName, UpdateSourceTrigger=LostFocus}"
-                         VerticalContentAlignment="Center" Margin="8,0,0,0"
-                         ToolTip="修改当前方案名，失焦即生效" />
+            <TextBlock Text="下拉框切换方案，方案会记住外观和窗口位置" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="删除" Width="52"
+                        Command="{Binding DeleteProfileCommand}" Margin="6,0,0,0" />
+                <ComboBox ItemsSource="{Binding Profiles}"
+                          DisplayMemberPath="Name"
+                          SelectedValuePath="Id"
+                          SelectedValue="{Binding ActiveProfileId}"
+                          PreviewMouseWheel="ComboBox_PreviewMouseWheel" />
             </DockPanel>
             <DockPanel Margin="0,8,0,0">
-                <Button DockPanel.Dock="Right" Content="删除" Width="64"
-                        Command="{Binding DeleteProfileCommand}" Margin="6,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="另存为新方案"
+                        Command="{Binding SaveAsProfileCommand}" Margin="6,0,0,0" />
                 <TextBox Text="{Binding NewProfileName, UpdateSourceTrigger=PropertyChanged}"
                          VerticalContentAlignment="Center"
-                         ToolTip="输入新方案名后点「另存为当前外观」" />
+                         ToolTip="输入方案名，点「另存为新方案」把当前外观和窗口位置存成一个新方案" />
             </DockPanel>
-            <Button Content="另存为当前外观"
-                    Command="{Binding SaveAsProfileCommand}"
-                    HorizontalAlignment="Right" Margin="0,6,0,0" Padding="14,5" />
 
             <Separator Margin="0,12" />
 

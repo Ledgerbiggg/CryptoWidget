@@ -147,22 +147,6 @@ public class SettingsViewModel : BindableBase
         set => SetProperty(ref _newProfileName, value);
     }
 
-    /// <summary>当前方案名（改名即写回当前方案）</summary>
-    public string CurrentProfileName
-    {
-        get => _settings.Profiles?.FirstOrDefault(p => p.Id == _settings.ActiveProfileId)?.Name ?? "";
-        set
-        {
-            var p = _settings.Profiles?.FirstOrDefault(x => x.Id == _settings.ActiveProfileId);
-            if (p == null) return;
-            var name = value.Trim();
-            if (string.IsNullOrEmpty(name) || p.Name == name) return;
-            p.Name = name;
-            _config.SaveSettings(_settings);
-            Reload(); // 重建 Profiles 集合，让下拉即时显示新名称
-        }
-    }
-
     /// <summary>另存为当前外观为新方案</summary>
     public DelegateCommand SaveAsProfileCommand { get; }
 
@@ -695,9 +679,14 @@ public class SettingsViewModel : BindableBase
         ErrorText = "";
     }
 
-    /// <summary>删除当前方案，自动切到首个余下方案（至少保留一个）</summary>
+    /// <summary>删除当前方案，自动切到首个余下方案（默认方案与最后一个方案不可删）</summary>
     private void DeleteProfile()
     {
+        if (_activeProfileId == AppearanceProfile.DefaultId)
+        {
+            ErrorText = "默认方案不可删除";
+            return;
+        }
         if (Profiles.Count <= 1)
         {
             ErrorText = "至少保留一个方案";
@@ -712,6 +701,6 @@ public class SettingsViewModel : BindableBase
         SwitchProfile(next.Id);          // 再应用下一个并 Reload
     }
 
-    /// <summary>删除命令可用性：仅当存在多个方案时可删</summary>
-    private bool CanDeleteProfile() => Profiles.Count > 1;
+    /// <summary>删除命令可用性：默认方案不可删，且至少保留一个方案</summary>
+    private bool CanDeleteProfile() => Profiles.Count > 1 && _activeProfileId != AppearanceProfile.DefaultId;
 }

@@ -79,8 +79,8 @@ public class ConfigService
         FontSize = 12,
         FontWeight = "SemiBold",
         // 默认方案：外观字段与上面顶层默认值一致，首启动即用「默认」方案
-        Profiles = new List<AppearanceProfile> { new() { Id = "default", Name = "默认" } },
-        ActiveProfileId = "default",
+        Profiles = new List<AppearanceProfile> { new() { Id = AppearanceProfile.DefaultId, Name = "默认" } },
+        ActiveProfileId = AppearanceProfile.DefaultId,
     };
 
     /// <summary>迁移：旧配置/新建时若没有方案池，用当前外观生成「默认」方案（固定 Id 便于识别）。
@@ -89,7 +89,7 @@ public class ConfigService
     {
         if (s.Profiles is { Count: > 0 }) return false;
         var def = AppearanceProfile.FromSettings(s, "默认");
-        def.Id = "default";
+        def.Id = AppearanceProfile.DefaultId;
         s.Profiles = new List<AppearanceProfile> { def };
         s.ActiveProfileId = def.Id;
         return true;
