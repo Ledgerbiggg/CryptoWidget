@@ -9,7 +9,7 @@ public class AppSettings
     /// <summary>当前生效的外观方案 Id（对应 Profiles 中的一项）</summary>
     public string ActiveProfileId { get; set; } = "";
 
-    /// <summary>外观方案存档池（命名切换，仅覆盖外观字段）；为空时由 ConfigService 自动用当前外观生成「默认」方案</summary>
+    /// <summary>外观方案存档池（命名切换，覆盖外观字段与窗口位置）；为空时由 ConfigService 自动用当前外观生成「默认」方案</summary>
     public List<AppearanceProfile> Profiles { get; set; } = new();
 
     public bool ShowIcon { get; set; } = true;
@@ -38,7 +38,7 @@ public class AppSettings
     /// <summary>显示/隐藏卡片全局热键（默认 Alt+1）</summary>
     public HotkeyBinding ToggleHotkey { get; set; } = new() { Modifier = "Alt", Key = "1" };
 
-    /// <summary>窗口位置记忆（退出时保存，启动时恢复）</summary>
+    /// <summary>窗口位置记忆（当前生效位置，启动恢复；切换方案时由方案覆盖并跟随方案保存）</summary>
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }
 

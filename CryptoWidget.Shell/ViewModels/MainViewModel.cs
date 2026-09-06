@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Net.Http;
@@ -27,6 +28,8 @@ public class MainViewModel : BindableBase
     private readonly IMarketService _market;
     private readonly IContainerProvider _container;
     private readonly Dictionary<string, CoinItem> _coinsByInstId = [];
+    /// <summary>正在加载图标的币种（去重，避免重连/启动时并发重复请求）</summary>
+    private readonly ConcurrentDictionary<string, byte> _iconsLoading = new();
 
     private AppSettings _settings;
     private List<string> _lastInstIds = [];
@@ -207,11 +210,17 @@ public class MainViewModel : BindableBase
 
     public DelegateCommand OpenSettingsCommand { get; }
 
-    /// <summary>保存窗口位置：基于最新配置快照仅更新位置字段（避免用启动时的旧快照覆盖币种/透明度等新改动）</summary>
+    /// <summary>保存窗口位置：写顶层配置，并同步写入当前激活方案（切换方案时位置跟随方案恢复）</summary>
     public void SaveWindowPosition(double left, double top)
     {
         _settings.WindowLeft = left;
         _settings.WindowTop = top;
+        var active = _settings.Profiles?.FirstOrDefault(p => p.Id == _settings.ActiveProfileId);
+        if (active != null)
+        {
+            active.WindowLeft = left;
+            active.WindowTop = top;
+        }
         _config.SaveSettings(_settings);
     }
 
@@ -364,15 +373,33 @@ public class MainViewModel : BindableBase
         });
     }
 
-    /// <summary>连接状态变化：更新全局圆点（绿=已连，红=断线）</summary>
+    /// <summary>连接状态变化：更新全局圆点（绿=已连，红=断线）；重连成功后补齐缺失的币种图标</summary>
     private void OnConnectionChanged(object? sender, bool connected)
     {
-        Application.Current.Dispatcher.BeginInvoke(() => IsConnected = connected);
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            IsConnected = connected;
+            // 重连成功后，把之前因代理/网络故障没加载到的币种图标重新请求一遍
+            if (connected)
+                ReloadMissingIcons();
+        });
     }
 
-    /// <summary>从 OKX 图标 CDN 异步加载币种图标，失败保持首字母色块（URL 用小写币种名拼接）</summary>
+    /// <summary>重新请求尚未加载成功的币种图标（重连成功后调用，避免图标永久缺失）</summary>
+    private void ReloadMissingIcons()
+    {
+        foreach (var coin in Coins)
+        {
+            if (!coin.IconLoaded)
+                LoadIconAsync(coin);
+        }
+    }
+
+    /// <summary>从 OKX 图标 CDN 异步加载币种图标，失败保持首字母色块（URL 用小写币种名拼接）。
+    /// 同一币种并发加载去重；加载失败不置位 IconLoaded，重连成功后会再次请求</summary>
     private async void LoadIconAsync(CoinItem coin)
     {
+        if (!_iconsLoading.TryAdd(coin.InstId, 0)) return; // 已在加载，去重
         try
         {
             var url = IconCdnBase + coin.Symbol.ToLowerInvariant() + ".png";
@@ -394,7 +421,11 @@ public class MainViewModel : BindableBase
         }
         catch
         {
-            // 图标加载失败不阻塞，首字母色块兜底
+            // 图标加载失败不阻塞，首字母色块兜底（重连成功后会重新请求）
+        }
+        finally
+        {
+            _iconsLoading.TryRemove(coin.InstId, out _);
         }
     }
 

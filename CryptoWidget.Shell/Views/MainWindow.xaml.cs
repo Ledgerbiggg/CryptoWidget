@@ -31,6 +31,8 @@ public partial class MainWindow : Window
     private AppSettings _settings;
     private HwndSource? _hwndSource;
     private bool _closingToTray = true;
+    /// <summary>上次生效的方案 Id（用于检测方案切换后恢复该方案记录的窗口位置）</summary>
+    private string _lastProfileId = "";
 
     public MainWindow(MainViewModel vm, ITrayService tray, ConfigService config, HotkeyManager hotkeyManager)
     {
@@ -40,6 +42,7 @@ public partial class MainWindow : Window
         _config = config;
         _hotkeyManager = hotkeyManager;
         _settings = config.LoadSettings();
+        _lastProfileId = _settings.ActiveProfileId;
         DataContext = vm;
 
         // 窗口图标（用户提供的比特币图标）。注意 .ico 必须用 IconBitmapDecoder 解码，BitmapImage 不支持
@@ -78,9 +81,15 @@ public partial class MainWindow : Window
         // 配置保存后（含设置窗口改热键/切换方案）重新注册热键、刷新托盘方案菜单，立即生效
         _config.SettingsSaved += (_, _) =>
         {
-            _settings = _config.LoadSettings();
+            var newSettings = _config.LoadSettings();
+            var profileChanged = newSettings.ActiveProfileId != _lastProfileId;
+            _settings = newSettings;
+            _lastProfileId = newSettings.ActiveProfileId;
             RegisterHotkey();
             RefreshTrayProfiles();
+            // 切换方案后恢复该方案记录的窗口位置（其他设置改动不动位置）
+            if (profileChanged)
+                ApplySavedWindowState();
         };
 
         SourceInitialized += OnSourceInitialized;
@@ -187,7 +196,13 @@ public partial class MainWindow : Window
     {
         if (e.OriginalSource is DependencyObject d && FindVisualParent<ButtonBase>(d) != null)
             return;
-        try { DragMove(); } catch { /* 极小概率异常忽略 */ }
+        try
+        {
+            DragMove();
+            // 拖动结束立即记录位置：即使之后直接关机/重启也能记住，不依赖隐藏/退出时机
+            SaveWindowState();
+        }
+        catch { /* 极小概率异常忽略 */ }
     }
 
     private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
@@ -226,19 +241,26 @@ public partial class MainWindow : Window
         _tray.RefreshProfiles(profiles, _settings.ActiveProfileId);
     }
 
-    /// <summary>恢复上次窗口位置（默认屏幕右上角），显示器变化后越界则回退到默认位置</summary>
+    /// <summary>恢复上次窗口位置（默认屏幕右上角），显示器变化后越界则回退到默认位置。
+    /// 用虚拟屏幕边界（所有显示器联合区域）判断，支持把卡片停在副屏（含副屏在主屏左侧的负坐标）</summary>
     private void ApplySavedWindowState()
     {
-        var area = SystemParameters.WorkArea;
+        // 虚拟屏幕 = 所有显示器的联合边界（DIP 单位，与 Window.Left/Top 一致）
+        var vLeft = SystemParameters.VirtualScreenLeft;
+        var vTop = SystemParameters.VirtualScreenTop;
+        var vRight = vLeft + SystemParameters.VirtualScreenWidth;
+        var vBottom = vTop + SystemParameters.VirtualScreenHeight;
+
         if (_settings.WindowLeft is double l && _settings.WindowTop is double t
-            && l >= area.Left - 200 && l <= area.Right - 60
-            && t >= area.Top && t <= area.Bottom - 30)
+            && l >= vLeft - 200 && l <= vRight - 60
+            && t >= vTop && t <= vBottom - 30)
         {
             Left = l;
             Top = t;
         }
         else
         {
+            var area = SystemParameters.WorkArea;
             Left = area.Right - Math.Max(Width, 280) - 24;
             Top = area.Top + 24;
         }
