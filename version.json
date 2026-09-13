@@ -1,5 +1,5 @@
 {
-  "version": "0.1.3",
-  "notes": "## v0.1.3 更新说明\n> 生成时间：2026-09-13 17:09\n\n### 🧹 杂项\n- 统一指令命名并精简 Makefile\n- 移除 pre-push 钩子（模板与 .NET 项目不兼容）\n- 强化乱码检测并修复子 shell 退出失效\n- 新增乱码拦截钩子\n\n共 4 条提交。",
+  "version": "0.1.4",
+  "notes": "## v0.1.4 更新说明\n> 生成时间：2026-09-13 17:35\n\n### ✨ 新功能\n- 新增「静默启动」设置项：勾选后启动时不弹出卡片，只把图标放在系统托盘，点托盘图标或按热键即可呼出\n\n### 🧹 杂项\n- 新增提交乱码拦截钩子，强化乱码检测并修复子 shell 退出失效\n- 移除 pre-push 钩子（Node.js 模板与 .NET 项目不兼容）\n- 统一指令命名并精简 Makefile\n- 修复 0.1.3 发布流程 GitHub API 500 导致的中断，重新发布为 0.1.4\n\n共 6 条提交。",
   "url": "https://github.com/Ledgerbiggg/CryptoWidget/releases/latest"
 }
