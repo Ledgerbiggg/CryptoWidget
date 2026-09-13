@@ -32,6 +32,9 @@ public class AppSettings
     /// <summary>开机自启</summary>
     public bool AutoStart { get; set; } = false;
 
+    /// <summary>静默启动：勾选后每次启动（含开机自启）不显示卡片，只驻留托盘，点托盘图标或按热键呼出</summary>
+    public bool StartSilent { get; set; } = false;
+
     /// <summary>是否已钉住（始终置顶）。默认未钉住</summary>
     public bool IsPinned { get; set; } = false;
 

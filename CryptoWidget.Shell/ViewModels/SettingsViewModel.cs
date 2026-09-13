@@ -39,6 +39,7 @@ public class SettingsViewModel : BindableBase
     private double _fontSize = 12;
     private string _fontWeightName = "SemiBold";
     private bool _autoStartEnabled;
+    private bool _startSilent;
     private string _proxy = "";
     private string _newSymbol = "";
     private string _errorText = "";
@@ -110,6 +111,7 @@ public class SettingsViewModel : BindableBase
         _fontSize = _settings.FontSize;
         _fontWeightName = _settings.FontWeight;
         _autoStartEnabled = _settings.AutoStart;
+        _startSilent = _settings.StartSilent;
         _proxy = _settings.Proxy;
         var hotkey = _settings.ToggleHotkey ?? new HotkeyBinding { Modifier = "Alt", Key = "1" };
         _hotkeyModifier = hotkey.Modifier ?? "Alt";
@@ -327,6 +329,13 @@ public class SettingsViewModel : BindableBase
                 Save();
             }
         }
+    }
+
+    /// <summary>静默启动：勾选后每次启动（含开机自启）不显示卡片，只驻留托盘，下次启动生效</summary>
+    public bool StartSilent
+    {
+        get => _startSilent;
+        set { if (SetProperty(ref _startSilent, value)) Save(); }
     }
 
     /// <summary>代理地址（失焦保存；留空走系统代理/环境变量）</summary>
@@ -621,6 +630,7 @@ public class SettingsViewModel : BindableBase
         _settings.FontSize = _fontSize;
         _settings.FontWeight = _fontWeightName;
         _settings.AutoStart = _autoStartEnabled;
+        _settings.StartSilent = _startSilent;
         _settings.Proxy = _proxy;
         _update.SetProxy(_proxy); // 代理改动立即对更新检查生效（启动后开代理也生效）
         _settings.ToggleHotkey = new HotkeyBinding { Modifier = _hotkeyModifier, Key = _hotkeyKey };

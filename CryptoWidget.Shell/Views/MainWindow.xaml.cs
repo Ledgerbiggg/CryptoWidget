@@ -121,6 +121,14 @@ public partial class MainWindow : Window
         {
             LoggerHelper.Error("主窗口加载初始化异常", ex);
         }
+
+        // 静默启动（设置项）：托盘与热键都已就绪后收起卡片，只留托盘图标。
+        // 按热键或点托盘图标走 ToggleShowCard/ShowCard 原路径呼出，行为与点 × 隐藏完全一致
+        if (_settings.StartSilent)
+        {
+            Hide();
+            _tray.SetShowChecked(false);
+        }
     }
 
     /// <summary>窗口消息处理：WM_HOTKEY 由 HotkeyManager 分发；单实例唤出消息时显示卡片</summary>
