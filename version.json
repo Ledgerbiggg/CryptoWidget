@@ -1,5 +1,5 @@
 {
-  "version": "0.1.4",
-  "notes": "## v0.1.4 更新说明\n> 生成时间：2026-09-13 17:35\n\n### ✨ 新功能\n- 新增「静默启动」设置项：勾选后启动时不弹出卡片，只把图标放在系统托盘，点托盘图标或按热键即可呼出\n\n### 🧹 杂项\n- 新增提交乱码拦截钩子，强化乱码检测并修复子 shell 退出失效\n- 移除 pre-push 钩子（Node.js 模板与 .NET 项目不兼容）\n- 统一指令命名并精简 Makefile\n- 修复 0.1.3 发布流程 GitHub API 500 导致的中断，重新发布为 0.1.4\n\n共 6 条提交。",
-  "url": "https://github.com/Ledgerbiggg/CryptoWidget/releases/latest"
+    "version":  "0.1.5",
+    "notes":  "## v0.1.5 更新说明\n> 生成时间：2026-09-15 22:22\n\n### 🐛 问题修复\n- 修复升级或重装时安装程序无法自动关闭本程序、弹出「Setup was unable to automatically close all applications」的问题：主窗口的「关闭到托盘」会拦截安装程序的关闭请求，现改为响应安装程序发来的退出请求并真正退出；安装包不再依赖 Restart Manager 自动关闭，改为主动结束被占用的进程\n\n### 🧹 杂项\n- Makefile 统一 dev / start / watch 目标\n\n### 📝 文档\n- 新增需求工作流（requirements）与 implement-requirement 技能\n\n共 3 条提交。",
+    "url":  "https://github.com/Ledgerbiggg/CryptoWidget/releases/latest"
 }
