@@ -131,7 +131,8 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>窗口消息处理：WM_HOTKEY 由 HotkeyManager 分发；单实例唤出消息时显示卡片</summary>
+    /// <summary>窗口消息处理：WM_HOTKEY 由 HotkeyManager 分发；
+    /// 单实例唤出消息时显示卡片；安装程序请求退出时真正结束进程</summary>
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (_hotkeyManager.HandleMessage(msg, wParam))
@@ -142,6 +143,13 @@ public partial class MainWindow : Window
         {
             handled = true;
             ShowCard();
+        }
+        else if (msg == App.WmExitForUpdate)
+        {
+            handled = true;
+            // 安装程序请求退出，复用托盘 Quit 路径（ExitApp 会先解除关闭拦截），
+            // 否则点 × 即隐藏到托盘的逻辑会让 exe 一直被占用，安装失败
+            ExitApp();
         }
         return IntPtr.Zero;
     }

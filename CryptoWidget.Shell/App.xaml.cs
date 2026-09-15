@@ -19,7 +19,14 @@ namespace CryptoWidget.Shell;
 public partial class App : PrismApplication
 {
     /// <summary>单实例唤出消息（与主窗口 WndProc 约定一致）</summary>
-    private const int WmShowInstance = 0x0401;
+    internal const int WmShowInstance = 0x0401;
+
+    /// <summary>安装程序请求退出消息：安装包在 PrepareToInstall 里以 --exit-for-update
+    /// 二次启动本程序，由已运行实例接收此消息后真正退出（供安装包替换被占用的 exe）</summary>
+    internal const int WmExitForUpdate = 0x0402;
+
+    /// <summary>命令行开关：请求正在运行的实例退出，供安装包替换文件前使用</summary>
+    private const string ExitForUpdateArg = "--exit-for-update";
 
     private Mutex? _mutex;
     private bool _ownsMutex;
@@ -39,12 +46,24 @@ public partial class App : PrismApplication
             LoggerHelper.Error("AppDomain 未处理异常", args.ExceptionObject as Exception);
         };
 
+        // 安装包以 --exit-for-update 二次启动本程序时，本进程只当信使：
+        // 把"退出"消息转给已运行实例后立刻退出。托盘常驻应用会拦截 WM_CLOSE，
+        // 靠 Restart Manager 是关不掉它的（安装时会弹"无法自动关闭应用程序"）
+        var exitForUpdate = e.Args.Any(
+            a => string.Equals(a, ExitForUpdateArg, StringComparison.OrdinalIgnoreCase));
+
         // 单实例：二次启动通知已有实例呼出窗口，自身退出
         _mutex = new Mutex(true, "CryptoWidget_SingleInstance", out var createdNew);
         _ownsMutex = createdNew;
         if (!createdNew)
         {
-            NotifyMainWindow();
+            NotifyMainWindow(exitForUpdate ? WmExitForUpdate : WmShowInstance);
+            Shutdown();
+            return;
+        }
+        // 本进程就是唯一实例：没有可通知的对象，直接退出（安装程序正等它消失）
+        if (exitForUpdate)
+        {
             Shutdown();
             return;
         }
@@ -110,12 +129,12 @@ public partial class App : PrismApplication
         }
     }
 
-    /// <summary>向已运行实例发送唤出消息（按窗口标题查找主卡片）</summary>
-    private static void NotifyMainWindow()
+    /// <summary>向已运行实例发送消息（唤出或请求退出，按窗口标题查找主卡片）</summary>
+    private static void NotifyMainWindow(int message)
     {
         var hwnd = FindWindow(null, "CryptoWidget");
         if (hwnd != IntPtr.Zero)
-            PostMessage(hwnd, WmShowInstance, IntPtr.Zero, IntPtr.Zero);
+            PostMessage(hwnd, message, IntPtr.Zero, IntPtr.Zero);
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
