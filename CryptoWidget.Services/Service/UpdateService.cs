@@ -124,10 +124,13 @@ public class UpdateService : IUpdateService
         return path;
     }
 
-    /// <summary>启动安装程序（Inno Setup 安装包，用户交互式安装）</summary>
+    /// <summary>启动安装程序（Inno Setup 安装包，用户交互式安装）。
+    /// 经 explorer 代理启动：切断安装器与本进程的父子关系（PPID 指向 explorer），
+    /// 避免安装器 PrepareToInstall 里 taskkill 杀本进程树时把安装器自己连带杀掉
+    /// （应用内更新闪退问题）。UAC 提权由系统接管</summary>
     public void LaunchInstaller(string path)
     {
-        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        Process.Start("explorer.exe", $"\"{path}\"");
     }
 
     /// <summary>构造 HttpClient：显式代理优先，否则环境变量，再否则系统代理；GitHub API 要求 User-Agent</summary>
