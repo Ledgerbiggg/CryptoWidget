@@ -1,7 +1,7 @@
 namespace CryptoWidget.Models;
 
-/// <summary>外观配置方案：覆盖外观字段与窗口位置，可命名存档、随时切换。
-/// 币种列表/代理/热键/开机自启等全局偏好不在方案范围内，切换时保持不变</summary>
+/// <summary>外观配置方案：覆盖币种列表、外观字段与窗口位置，可命名存档、随时切换。
+/// 代理/热键/开机自启等全局偏好不在方案范围内，切换时保持不变</summary>
 public class AppearanceProfile
 {
     /// <summary>默认方案的固定 Id</summary>
@@ -12,6 +12,10 @@ public class AppearanceProfile
 
     /// <summary>方案显示名（如 迷你 / 标准 / 大屏）</summary>
     public string Name { get; set; } = "方案";
+
+    /// <summary>本方案订阅的币种列表（切换方案时覆盖顶层生效列表）；
+    /// null 表示旧配置尚未迁移，由 ConfigService 用当时的全局列表填充</summary>
+    public List<CoinConfig>? Coins { get; set; }
 
     public bool ShowIcon { get; set; } = true;
     public bool ShowName { get; set; } = true;
@@ -30,10 +34,11 @@ public class AppearanceProfile
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }
 
-    /// <summary>从当前 AppSettings 顶层外观字段构建一个方案副本（用于「另存为」）</summary>
+    /// <summary>从当前 AppSettings 顶层外观字段构建一个方案副本（用于「另存为」），币种列表一并拷入</summary>
     public static AppearanceProfile FromSettings(AppSettings s, string? name = null) => new()
     {
         Name = name ?? "方案",
+        Coins = s.Coins.Select(c => c.Clone()).ToList(),
         ShowIcon = s.ShowIcon,
         ShowName = s.ShowName,
         ShowPrice = s.ShowPrice,
@@ -50,9 +55,13 @@ public class AppearanceProfile
         WindowTop = s.WindowTop,
     };
 
-    /// <summary>把本方案外观字段写回 AppSettings 顶层（用于切换生效）</summary>
+    /// <summary>把本方案字段写回 AppSettings 顶层（用于切换生效）</summary>
     public void CopyTo(AppSettings s)
     {
+        // 币种跟随方案切换：深拷贝覆盖顶层生效列表（空列表视为配置异常，保持顶层不动避免切到全空）
+        if (Coins is { Count: > 0 })
+            s.Coins = Coins.Select(c => c.Clone()).ToList();
+
         s.ShowIcon = ShowIcon;
         s.ShowName = ShowName;
         s.ShowPrice = ShowPrice;

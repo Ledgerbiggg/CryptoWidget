@@ -19,4 +19,7 @@ public class CoinConfig
 
     /// <summary>价格显示小数位数（可选，null 则原样显示 OKX 返回的价格）</summary>
     public int? DecimalPlaces { get; set; }
+
+    /// <summary>深拷贝：方案与顶层各持有一份币种列表，防止引用共享导致改一边误伤另一边</summary>
+    public CoinConfig Clone() => new(Symbol, InstId) { DecimalPlaces = DecimalPlaces };
 }

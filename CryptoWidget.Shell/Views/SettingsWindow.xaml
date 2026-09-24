@@ -74,7 +74,7 @@
 
             <!-- 配置方案：下拉框切换，另存为新方案保存当前外观与窗口位置 -->
             <TextBlock Text="配置方案" Style="{StaticResource SettingsGroupTitleStyle}" />
-            <TextBlock Text="下拉框切换方案，方案会记住外观和窗口位置" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
+            <TextBlock Text="下拉框切换方案，方案会记住币种列表、外观和窗口位置" Foreground="#7A8494" FontSize="11" Margin="0,-4,0,4" />
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="删除" Width="52"
                         Command="{Binding DeleteProfileCommand}" Margin="6,0,0,0" />
@@ -89,7 +89,7 @@
                         Command="{Binding SaveAsProfileCommand}" Margin="6,0,0,0" />
                 <TextBox Text="{Binding NewProfileName, UpdateSourceTrigger=PropertyChanged}"
                          VerticalContentAlignment="Center"
-                         ToolTip="输入方案名，点「另存为新方案」把当前外观和窗口位置存成一个新方案" />
+                         ToolTip="输入方案名，点「另存为新方案」把当前币种、外观和窗口位置存成一个新方案" />
             </DockPanel>
 
             <Separator Margin="0,12" />

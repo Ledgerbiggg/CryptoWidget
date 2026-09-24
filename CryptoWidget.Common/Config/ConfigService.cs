@@ -30,22 +30,30 @@ public class ConfigService
     }
 
     /// <summary>读取设置；文件缺失或解析失败返回默认设置（默认仅订阅 BTC）。
-    /// 旧配置/首次启动若没有方案池，自动用当前外观生成「默认」方案并落盘，保证平滑升级</summary>
+    /// 旧配置/首次启动若没有方案池，自动用当前外观生成「默认」方案；
+    /// 旧方案的币种字段为 null 时用当时的全局列表填充，保证平滑升级</summary>
     public AppSettings LoadSettings()
     {
         var s = Load(SettingsPath, () => Default());
-        if (EnsureProfiles(s)) SaveSettings(s);
+        var migrated = EnsureProfiles(s);
+        if (MigrateProfileCoins(s)) migrated = true;
+        if (migrated) SaveSettings(s);
         return s;
     }
 
-    /// <summary>切换到指定外观方案：把方案外观字段写回当前配置顶层并广播，主卡片即时刷新</summary>
+    /// <summary>切换到指定外观方案：把方案币种与外观字段写回当前配置顶层并广播，主卡片即时换币种重订阅</summary>
     public void ApplyProfile(string id)
     {
         var s = LoadSettings();
         var p = s.Profiles.FirstOrDefault(x => x.Id == id);
-        if (p == null) return;
+        if (p == null)
+        {
+            LoggerHelper.Warn($"ApplyProfile: 方案不存在 id={id}，忽略切换");
+            return;
+        }
         p.CopyTo(s);
         s.ActiveProfileId = id;
+        LoggerHelper.Info($"ApplyProfile: 切换到方案「{p.Name}」({id})，币种 {s.Coins.Count} 个: [{string.Join(",", s.Coins.Select(c => c.InstId))}]");
         SaveSettings(s);
     }
 
@@ -92,6 +100,20 @@ public class ConfigService
         def.Id = AppearanceProfile.DefaultId;
         s.Profiles = new List<AppearanceProfile> { def };
         s.ActiveProfileId = def.Id;
+        return true;
+    }
+
+    /// <summary>迁移：旧版本币种是全局的，方案没有币种字段（null）；升级到「币种跟随方案」后，
+    /// 把当时的全局列表复制给每个未迁移的方案（各方案从同一份列表起步，之后各自独立演化）。
+    /// 返回 true 表示发生了迁移（调用方据此落盘一次）</summary>
+    private static bool MigrateProfileCoins(AppSettings s)
+    {
+        if (s.Profiles == null) return false;
+        var targets = s.Profiles.Where(p => p.Coins == null).ToList();
+        if (targets.Count == 0) return false;
+        foreach (var p in targets)
+            p.Coins = s.Coins.Select(c => c.Clone()).ToList();
+        LoggerHelper.Info($"MigrateProfileCoins: {targets.Count} 个方案币种字段为空，已用全局列表 [{string.Join(",", s.Coins.Select(c => c.InstId))}] 填充: [{string.Join(",", targets.Select(p => p.Name))}]");
         return true;
     }
 

@@ -641,19 +641,26 @@ public class SettingsViewModel : BindableBase
         _config.SaveSettings(_settings);
     }
 
-    /// <summary>下拉切换方案：把方案外观写回文件并广播（主卡片即时刷新），再 Reload 同步编辑态</summary>
+    /// <summary>下拉切换方案：把方案币种与外观写回文件并广播（主卡片即时刷新），再 Reload 同步编辑态</summary>
     private void SwitchProfile(string id)
     {
         if (Profiles.FirstOrDefault(x => x.Id == id) == null) return;
         _config.ApplyProfile(id);
         Reload();
+        LoggerHelper.Info($"SwitchProfile: 设置窗口已切换到方案 {id}，编辑列表币种 {Coins.Count} 个: [{string.Join(",", Coins.Select(c => c.InstId))}]");
     }
 
-    /// <summary>把当前 VM 外观字段同步写回激活的方案（改动即覆盖当前方案）</summary>
+    /// <summary>把当前 VM 外观字段与币种列表同步写回激活的方案（改动即覆盖当前方案）</summary>
     private void SyncActiveProfile()
     {
         var active = _settings.Profiles?.FirstOrDefault(p => p.Id == _settings.ActiveProfileId);
-        if (active == null) return;
+        if (active == null)
+        {
+            LoggerHelper.Warn($"SyncActiveProfile: 激活方案不存在 ActiveProfileId={_settings.ActiveProfileId}，币种/外观未写入方案");
+            return;
+        }
+        // 币种跟随方案：编辑结果深拷贝写入方案（与顶层生效列表各自持有一份，互不共享引用）
+        active.Coins = _settings.Coins.Select(c => c.Clone()).ToList();
         active.ShowIcon = _showIcon;
         active.ShowName = _showName;
         active.ShowPrice = _showPrice;

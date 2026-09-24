@@ -342,6 +342,7 @@ public class MainViewModel : BindableBase
         {
             _lastInstIds = instIds;
             _lastProxy = _settings.Proxy;
+            LoggerHelper.Info($"RebuildCoins: {(proxyChanged ? "代理变更" : "币种变更")}，重新订阅 {instIds.Count} 个: [{string.Join(",", instIds)}]");
             _market.Subscribe(instIds);
         }
     }
